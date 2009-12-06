@@ -1853,7 +1853,7 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
                     }
                 }
                 // Reflective Shield
-                if (spellProto->SpellFamilyFlags == 0x1 && canReflect)
+                if (spellProto->SpellIconID == 566 && canReflect)
                 {
                     if (pVictim == this)
                         break;
