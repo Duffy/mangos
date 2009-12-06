@@ -1034,6 +1034,9 @@ void Spell::DoAllEffectOnTarget(TargetInfo *target)
 
 void Spell::DoSpellHitOnUnit(Unit *unit, const uint32 effectMask)
 {
+    if (m_caster->HasAura(5384)) // Dirty hack for Feign Death
+        return;
+
     if (!unit || !effectMask)
         return;
 
