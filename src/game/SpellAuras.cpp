@@ -2179,13 +2179,15 @@ void Aura::TriggerSpell()
             }
             // Mana Tide
             case 16191:
-            {
                 target->CastCustomSpell(target, trigger_spell_id, &m_modifier.m_amount, NULL, NULL, true, NULL, this);
                 return;
-            }
             // Ground Slam
             case 33525:
                 target->CastSpell(target, trigger_spell_id, true, NULL, this, casterGUID);
+                return;
+            // Intense Cold
+            case 48094:
+                target->CastSpell(target, trigger_spell_id, true, NULL, this);
                 return;
             // Beacon of Light
             case 53563:
