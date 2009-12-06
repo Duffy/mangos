@@ -1491,6 +1491,7 @@ void Spell::EffectDummy(uint32 i)
                 m_damage+= uint32(damage * m_caster->GetTotalAttackPowerValue(BASE_ATTACK) / 100);
                 return;
             }
+
             switch(m_spellInfo->Id)
             {
                 // Warrior's Wrath
@@ -5353,6 +5354,14 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                            (*itr).second->GetCasterGUID()==m_caster->GetGUID())
                            (*itr).second->RefreshAura();
                     }
+                    return;
+                }
+                // Guarded by The Light (Paladin spell with SPELLFAMILY_WARLOCK)
+                case 63521:
+                {
+                    // Divine Plea, refresh on target (3 aura slots)
+                    if (Aura* aura = unitTarget->GetAura(54428,0))
+                        aura->RefreshAura();
                     return;
                 }
             }
