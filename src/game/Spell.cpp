@@ -2354,7 +2354,7 @@ void Spell::prepare(SpellCastTargets const* targets, Aura* triggeredByAura)
         return;
     }
 
-    if(uint8 result = objmgr.IsSpellDisabled(m_spellInfo->Id))
+    if(uint8 result = sObjectMgr.IsSpellDisabled(m_spellInfo->Id))
     {
         if(m_caster->GetTypeId() == TYPEID_PLAYER)
         {

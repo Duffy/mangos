@@ -1344,7 +1344,7 @@ void World::SetInitialWorldSettings()
     sObjectMgr.LoadMailLevelRewards();
 
     sLog.outString( "Loading Spell disabled..." );
-    objmgr.LoadSpellDisabledEntrys();
+    sObjectMgr.LoadSpellDisabledEntrys();
 
     sLog.outString( "Loading Loot Tables..." );
     sLog.outString();

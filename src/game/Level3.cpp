@@ -843,7 +843,7 @@ bool ChatHandler::HandleReloadSpellDisabledCommand(const char* /*arg*/)
 {
     sLog.outString( "Re-Loading spell disabled table...");
 
-    objmgr.LoadSpellDisabledEntrys();
+    sObjectMgr.LoadSpellDisabledEntrys();
 
     SendGlobalSysMessage("DB table `spell_disabled` reloaded.");
 
