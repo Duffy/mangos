@@ -6465,6 +6465,16 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     triggered_spell_id = 64930;            // Electrified
                     break;
                 }
+                // Improved Fire Nova (Rank 2)
+                case 16544:
+                    pVictim->CastSpell(pVictim,51880,true,NULL,triggeredByAura);
+                    return true;
+                // Earthen Power (Rank 1,2)
+                case 51523:
+                case 51524:
+                    pVictim->CastSpell(pVictim,59566,true,NULL,triggeredByAura);
+                    return true;
+
             }
             // Storm, Earth and Fire
             if (dummySpell->SpellIconID == 3063)
