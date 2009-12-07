@@ -2724,6 +2724,9 @@ void Spell::EffectHeal( uint32 /*i*/ )
 
             addhealth += damageAmount;
         }
+        // Death Pact (percent heal)
+        else if (m_spellInfo->Id==48743)
+            addhealth = addhealth * unitTarget->GetMaxHealth() / 100;
         // Swiftmend - consumes Regrowth or Rejuvenation
         else if (m_spellInfo->TargetAuraState == AURA_STATE_SWIFTMEND && unitTarget->HasAuraState(AURA_STATE_SWIFTMEND))
         {
