@@ -1754,6 +1754,10 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Unholy Presence and Unholy Presence (triggered)
                 if( spellInfo_1->SpellIconID == 2633 && spellInfo_2->SpellIconID == 2633 )
                     return false;
+
+                // Lichborne shapeshift and immunity
+                if (spellInfo_1->SpellFamilyFlags == UI64LIT(0x1000000000) && spellInfo_2->SpellFamilyFlags == UI64LIT(0x1000000000))
+                    return false;
             }
             break;
         default:
