@@ -8851,6 +8851,18 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
             }
             break;
         }
+        case SPELLFAMILY_PRIEST:
+        {
+            // Glyph of Shadow Word: Pain
+            if (spellProto->Id == 58381 && HasAura(55687))
+            {
+                Aura* glyph = GetAura(55687, 0);
+                //search for shadow word: pain on target
+                if (pVictim->GetAura(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_PRIEST, UI64LIT(0x0000000000008000)))
+                    DoneTotalMod += glyph->GetModifier()->m_amount * DoneTotalMod / 100;
+            }
+            break;
+        }
         case SPELLFAMILY_WARLOCK:
         {
             // Drain Soul
