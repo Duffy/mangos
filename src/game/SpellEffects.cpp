@@ -2012,6 +2012,13 @@ void Spell::EffectDummy(uint32 i)
                 }
                 return;
             }
+            // Desecration
+            else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x8000000000000))
+            {
+                // "Desecrated land" visual effect
+                m_caster->CastSpell(unitTarget,55741,true);
+                return;
+            }
             // Hungering Cold
             else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000100000000000))
             {
