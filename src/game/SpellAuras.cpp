@@ -313,7 +313,7 @@ pAuraHandler AuraHandler[TOTAL_AURAS]=
     &Aura::HandleNoImmediateEffect,                         //260 SPELL_AURA_SCREEN_EFFECT (miscvalue = id in ScreenEffect.dbc) not required any code
     &Aura::HandlePhase,                                     //261 SPELL_AURA_PHASE undetectable invisibility?     implemented in Unit::isVisibleForOrDetect
     &Aura::HandleNULL,                                      //262 ignore combat/aura state?
-    &Aura::HandleNULL,                                      //263 SPELL_AURA_ALLOW_ONLY_ABILITY player can use only abilities set in SpellClassMask
+    &Aura::HandleAllowOnlyAbility,                          //263 SPELL_AURA_ALLOW_ONLY_ABILITY player can use only abilities set in SpellClassMask
     &Aura::HandleUnused,                                    //264 unused (3.0.8a-3.2.2a)
     &Aura::HandleUnused,                                    //265 unused (3.0.8a-3.2.2a)
     &Aura::HandleUnused,                                    //266 unused (3.0.8a-3.2.2a)
@@ -6226,6 +6226,7 @@ void Aura::HandleShapeshiftBoosts(bool apply)
 
 void Aura::HandleSpellSpecificBoosts(bool apply)
 {
+    bool at_remove = false;                                 // if spell must be casted at aura remove
     uint32 spellId1 = 0;
     uint32 spellId2 = 0;
     uint32 spellId3 = 0;
@@ -6254,6 +6255,37 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
             }
             break;
         }
+        case SPELLFAMILY_WARLOCK:
+            if(!apply)
+            {
+                // Fear
+                if (m_spellProto->SpellFamilyFlags & UI64LIT(0x0000040000000000))
+                {
+                    Unit* caster = GetCaster();
+                    if(!caster)
+                        return;
+
+                    Unit::AuraList const& dummyAuras = caster->GetAurasByType(SPELL_AURA_DUMMY);
+                    for(Unit::AuraList::const_iterator itr = dummyAuras.begin(); itr != dummyAuras.end(); ++itr)
+                    {
+                        SpellEntry const* dummyEntry = (*itr)->GetSpellProto();
+                        // Improved Fear
+                        if (dummyEntry->SpellFamilyName == SPELLFAMILY_WARLOCK && dummyEntry->SpellIconID == 98)
+                        {
+                            at_remove = true;
+                            switch((*itr)->GetModifier()->m_amount)
+                            {
+                                // Rank 1
+                                case 0: spellId1 = 60946; break;
+                                // Rank 1
+                                case 1: spellId1 = 60947; break;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            break;
         case SPELLFAMILY_PRIEST:
             switch(GetId())
             {
@@ -6400,7 +6432,7 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
     // prevent aura deletion, specially in multi-boost case
     SetInUse(true);
 
-    if (apply)
+    if (apply || at_remove)
     {
         if (spellId1)
             m_target->CastSpell(m_target, spellId1, true, NULL, this);
@@ -7994,4 +8026,27 @@ void Aura::HandleAuraModAllCritChance(bool apply, bool Real)
 
     // included in Player::UpdateSpellCritChance calculation
     ((Player*)m_target)->UpdateAllSpellCritChances();
+}
+
+void Aura::HandleAllowOnlyAbility(bool apply, bool Real)
+{
+    if(!Real)
+       return;
+
+    if(apply)
+    {
+       m_target->setAttackTimer(BASE_ATTACK,m_duration);
+       m_target->setAttackTimer(RANGED_ATTACK,m_duration);
+       m_target->setAttackTimer(OFF_ATTACK,m_duration);
+    }
+    else
+    {
+       m_target->resetAttackTimer(BASE_ATTACK);
+       m_target->resetAttackTimer(RANGED_ATTACK);
+       m_target->resetAttackTimer(OFF_ATTACK);
+    }
+
+    m_target->UpdateDamagePhysical(BASE_ATTACK);
+    m_target->UpdateDamagePhysical(RANGED_ATTACK);
+    m_target->UpdateDamagePhysical(OFF_ATTACK);
 }
