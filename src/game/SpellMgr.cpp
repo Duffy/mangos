@@ -1805,6 +1805,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                     (spellInfo_2->Attributes & 0x40000) && (spellInfo_2->AttributesEx & 0x8) &&
                     spellInfo_1->Id > spellInfo_2->Id)
                     return true;
+
+                // Improved Blood Presence and Blood Presence
+                if( (spellInfo_1->Id == 48266 && spellInfo_2->Id == 63611) ||
+                    ( spellInfo_2->Id == 48266 && spellInfo_1->Id == 63611) )
+                    return true;
             }
             break;
         default:
