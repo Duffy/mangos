@@ -4704,11 +4704,11 @@ void Spell::EffectWeaponDmg(uint32 i)
     {
         case SPELLFAMILY_WARRIOR:
         {
-            // Whirlwind, single only spell with 2 weapon white damage apply if have
-            if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->SpellFamilyFlags & UI64LIT(0x00000400000000)))
+            // Whirlwind causes damage from both weapons
+            if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->Id == 1680 || m_spellInfo->Id == 50622))
             {
                 if(((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK,true))
-                    spell_bonus += m_caster->CalculateDamage (OFF_ATTACK, normalized);
+                    AddTriggeredSpell(44949);
             }
             // Devastate bonus and sunder armor refresh
             else if(m_spellInfo->SpellVisual[0] == 12295 && m_spellInfo->SpellIconID == 1508)
