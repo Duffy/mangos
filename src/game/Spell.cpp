@@ -1805,8 +1805,13 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
             FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(), radius, PUSH_IN_FRONT_15, SPELL_TARGETS_AOE_DAMAGE);
             break;
         case TARGET_IN_FRONT_OF_CASTER_30:
-            FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(), radius, PUSH_IN_FRONT_30, SPELL_TARGETS_AOE_DAMAGE);
+        {
+            if (m_spellInfo->SpellFamilyName == SPELLFAMILY_GENERIC)
+                FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(), radius, PUSH_IN_FRONT_30, SPELL_TARGETS_AOE_DAMAGE);
+            else
+                FillAreaTargets(TagUnitMap,m_caster->GetPositionX(), m_caster->GetPositionY(), radius, PUSH_IN_FRONT, SPELL_TARGETS_AOE_DAMAGE);
             break;
+        }
         case TARGET_DUELVSPLAYER:
         {
             Unit *target = m_targets.getUnitTarget();
