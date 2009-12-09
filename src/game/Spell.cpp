@@ -2967,6 +2967,10 @@ void Spell::finish(bool ok)
             }
     }
 
+    // Heal caster for all health leech from all targets
+    if (m_healthLeech)
+        m_caster->DealHeal(m_caster, uint32(m_healthLeech), m_spellInfo);
+
     if (IsMeleeAttackResetSpell())
     {
         m_caster->resetAttackTimer(BASE_ATTACK);
