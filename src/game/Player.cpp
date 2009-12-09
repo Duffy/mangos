@@ -4601,6 +4601,7 @@ void Player::RepopAtGraveyard()
             GetSession()->SendPacket(&data);
         }
     }
+    SetDisplayId(GetNativeDisplayId());
 }
 
 void Player::JoinedChannel(Channel *c)
