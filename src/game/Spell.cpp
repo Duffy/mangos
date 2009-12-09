@@ -2646,6 +2646,11 @@ void Spell::cast(bool skipCheck)
     SendCastResult(castResult);
     SendSpellGo();                                          // we must send smsg_spell_go packet before m_castItem delete in TakeCastItem()...
 
+    // Remove invisibility from caster
+    if(m_spellInfo->Id != 32612)
+        if(m_caster->HasAura(32612))
+            m_caster->RemoveAurasDueToSpell(32612);
+
     // Okay, everything is prepared. Now we need to distinguish between immediate and evented delayed spells
     if (m_spellInfo->speed > 0.0f)
     {
