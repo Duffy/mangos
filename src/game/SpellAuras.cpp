@@ -5043,6 +5043,22 @@ void Aura::HandlePeriodicDamage(bool apply, bool Real)
                 }
                 break;
             }
+            case SPELLFAMILY_PALADIN:
+            {
+                // Holy Vengeance / Blood Corruption
+                if ( m_spellProto->SpellIconID == 2292 && m_spellProto->SpellVisual[0] == 7902 )
+                {
+                    if (caster->GetTypeId() != TYPEID_PLAYER)
+                        return;
+                    // AP * 0.025 + SPH * 0.013 bonus per tick
+                    float ap = caster->GetTotalAttackPowerValue(BASE_ATTACK);
+                    int32 holy = ((Player*)caster)->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellProto)) +
+                                 ((Player*)caster)->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellProto), GetTarget());
+                    m_modifier.m_amount += int32(ap * 0.025f + holy * 0.013f);
+                    return;
+                }
+                break;
+            }
             default:
                 break;
         }
