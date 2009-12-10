@@ -595,7 +595,8 @@ void World::LoadConfigSettings(bool reload)
         sMapMgr.SetMapUpdateInterval(m_configs[CONFIG_INTERVAL_MAPUPDATE]);
 
     m_configs[CONFIG_INTERVAL_CHANGEWEATHER] = sConfig.GetIntDefault("ChangeWeatherInterval", 10 * MINUTE * IN_MILISECONDS);
-
+	m_configs[CONFIG_VMAP_TOTEM] = sConfig.GetBoolDefault("vmap.totem", false);
+	
     if(reload)
     {
         uint32 val = sConfig.GetIntDefault("WorldServerPort", DEFAULT_WORLDSERVER_PORT);

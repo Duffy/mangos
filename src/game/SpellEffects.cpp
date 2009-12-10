@@ -6183,9 +6183,27 @@ void Spell::EffectSummonTotem(uint32 i, uint8 slot)
     float x, y, z;
     m_caster->GetClosePoint(x, y, z, pTotem->GetObjectSize(), 2.0f, angle);
 
-    // totem must be at same Z in case swimming caster and etc.
-    if( fabs( z - m_caster->GetPositionZ() ) > 5 )
-        z = m_caster->GetPositionZ();
+    if (sWorld.getConfig(CONFIG_VMAP_TOTEM))
+    {
+        VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager();
+        if (vmgr->isHeightCalcEnabled() && vmgr->isLineOfSightCalcEnabled())
+        {   
+            float cx, cy, cz;
+            m_caster->GetPosition(cx,cy,cz);
+            
+            if (vmgr->getObjectHitPos(m_caster->GetMapId(), cx, cy, cz, x, y, z, x, y, z, 0)) 
+            {
+                x -= 0.5f * cos(angle);
+                y -= 0.5f * sin(angle);
+                z += 0.5f;
+            }
+        }
+    }
+    else
+    {
+        if (fabs(z - m_caster->GetPositionZ()) > 5)
+            z = m_caster->GetPositionZ();
+    }
 
     pTotem->Relocate(x, y, z, m_caster->GetOrientation());
 
