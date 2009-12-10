@@ -4057,6 +4057,39 @@ void Unit::RemoveSingleAuraDueToSpellByDispel(uint32 spellId, uint64 casterGUID,
         }
         return;
     }
+    // Flame Shock
+    if (spellEntry->SpellFamilyName == SPELLFAMILY_SHAMAN && (spellEntry->SpellFamilyFlags & UI64LIT(0x10000000)))
+    {
+        Unit* caster = NULL;
+        uint32 triggeredSpell = 0;
+
+        if (Aura* dotAura = GetAura(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_SHAMAN, UI64LIT(0x10000000), 0x00000000, casterGUID))
+            caster = dotAura->GetCaster();
+
+        if (caster && !caster->isDead())
+        {
+            Unit::AuraList const& auras = caster->GetAurasByType(SPELL_AURA_DUMMY);
+            for (Unit::AuraList::const_iterator i = auras.begin(); i != auras.end(); ++i)
+            {
+                switch((*i)->GetId())
+                {
+                    case 51480: triggeredSpell=64694; break;// Lava Flows, Rank 1
+                    case 51481: triggeredSpell=65263; break;// Lava Flows, Rank 2
+                    case 51482: triggeredSpell=65264; break;// Lava Flows, Rank 3
+                    default: continue;
+                }
+                break;
+            }
+        }
+
+        // Remove spell auras from stack
+        RemoveSingleSpellAurasByCasterSpell(spellId, casterGUID, AURA_REMOVE_BY_DISPEL);
+
+        // Haste
+        if (triggeredSpell)
+            caster->CastSpell(caster, triggeredSpell, true);
+        return;
+    }
 
     RemoveSingleSpellAurasByCasterSpell(spellId, casterGUID, AURA_REMOVE_BY_DISPEL);
 }
@@ -4263,24 +4296,6 @@ void Unit::RemoveAura(AuraMap::iterator &i, AuraRemoveMode mode)
     Aura* Aur = i->second;
     SpellEntry const* AurSpellInfo = Aur->GetSpellProto();
 
-    if(this->IsLastAura(AurSpellInfo->Id, Aur->GetEffIndex()))
-    {
-        Unit* originalCaster = Aur->GetCaster();
-        if(originalCaster)
-        {
-            uint32 procEx = PROC_EX_NONE;
-
-            if(mode == AURA_REMOVE_BY_DISPEL)
-                procEx |= PROC_EX_DISPEL;
-
-            //if absorb aura was removed (ice barrier, power word: shield, etc..)
-            if(mode == AURA_REMOVE_BY_DEFAULT && Aur->GetModifier()->m_auraname == SPELL_AURA_SCHOOL_ABSORB && !Aur->GetModifier()->m_amount)
-                procEx |= PROC_EX_ABSORB;
-
-            this->ProcDamageAndSpell(originalCaster, PROC_FLAG_NONE, PROC_FLAG_ON_AURA_REMOVE, procEx, 0, BASE_ATTACK, AurSpellInfo);
-        }
-    }
-
     Aur->UnregisterSingleCastAura();
 
     // remove from list before mods removing (prevent cyclic calls, mods added before including to aura list - use reverse order)
@@ -4453,17 +4468,6 @@ bool Unit::HasAura(uint32 spellId) const
             return true;
     }
     return false;
-}
-
-bool Unit::IsLastAura(uint32 spellId, uint32 effIndex) const
-{
-     for (int i = 0; i < 3 ; ++i)
-     {
-        AuraMap::const_iterator iter = m_Auras.find(spellEffectPair(spellId, i));
-        if (iter != m_Auras.end() && iter->second->GetEffIndex() != effIndex)
-            return false;
-     }
-    return true;
 }
 
 void Unit::AddDynObject(DynamicObject* dynObj)
@@ -5466,15 +5470,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     CastSpell(this, 28682, true, castItem, triggeredByAura);
                     return (procEx & PROC_EX_CRITICAL_HIT); // charge update only at crit hits, no hidden cooldowns
                 }
-                // Shattered Barrier
-                case 44745:
-                case 54787:
-                {
-                    if(procSpell->SpellIconID != 32)
-                        return false;
-                    CastSpell(this, 55080, true);
-                    return true;
-                }
                 // Glyph of Ice Block
                 case 56372:
                 {
@@ -5767,55 +5762,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     triggered_spell_id = 63675;
                     break;
                 }
-                // Rapture (Ranks 1-3)
-                case 2894:
-                {
-                    switch(effIndex)
-                    {
-                        case 0:
-                        {
-                            // energize caster
-                            int32 manapct1000 = 5 * (triggerAmount + sSpellMgr.GetSpellRank(dummySpell->Id));
-                            int32 basepoints0 = this->GetMaxPower(POWER_MANA) * manapct1000 / 1000;
-                            CastCustomSpell(this, 47755, &basepoints0, NULL, NULL, true);
-                            break;
-                        }
-                        case 1:
-                        {
-                            // energize target
-                           if (!roll_chance_i(triggerAmount) || this->HasAura(63853))
-                               break;
-
-                           switch(pVictim->getPowerType())
-                           {
-                                case POWER_RUNIC_POWER:
-                                    pVictim->CastSpell(pVictim, 63652, true, NULL, triggeredByAura);
-                                    break;
-                                case POWER_RAGE:
-                                    pVictim->CastSpell(pVictim, 63653, true, NULL, triggeredByAura);
-                                    break;
-                                case POWER_MANA:
-                                {
-                                    int32 basepoints0 = pVictim->GetMaxPower(POWER_MANA) * 2 / 100;
-                                    pVictim->CastCustomSpell(pVictim, 63654, &basepoints0, NULL, NULL, true, NULL, triggeredByAura);
-                                    break;
-                                }
-                                case POWER_ENERGY:
-                                    pVictim->CastSpell(pVictim, 63655, true, NULL, triggeredByAura);
-                                    break;
-                                default:
-                                    break;
-                           }
-                           //cooldown aura
-                           this->CastSpell(this, 63853, true);
-                           break;
-                        }
-                        default:
-                            sLog.outError("Changes in R-dummy spell???: effect 3");
-                            break;
-                    }
-                    break;
-                }
             }
 
             switch(dummySpell->Id)
@@ -5835,15 +5781,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                     int32 self = triggerAmount*damage/100 - team;
                     pVictim->CastCustomSpell(pVictim,15290,&team,&self,NULL,true,castItem,triggeredByAura);
                     return true;                                // no hidden cooldown
-                }
-                // Shadow Affinity (Ranks 1-3)
-                case 15318:
-                case 15272:
-                case 15320:
-                {
-                    basepoints0 = triggerAmount * target->GetCreateMana() / 100;
-                    triggered_spell_id = 64103;
-                    break;
                 }
                 // Priest Tier 6 Trinket (Ashtongue Talisman of Acumen)
                 case 40438:
@@ -6608,24 +6545,6 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                         return false;
 
                     target = this;
-                    break;
-                }
-                // Lava Flows (Rank 1)
-                case 51480:
-                {
-                    triggered_spell_id = 64694;
-                    break;
-                }
-                // Lava Flows (Rank 2)
-                case 51481:
-                {
-                    triggered_spell_id = 65263;
-                    break;
-                }
-                // Lava Flows (Rank 3)
-                case 51482:
-                {
-                    triggered_spell_id = 65264;
                     break;
                 }
                 // Glyph of Healing Wave
