@@ -159,11 +159,20 @@ enum TimeConstants
 
 enum AccountTypes
 {
-    SEC_PLAYER         = 0,
-    SEC_MODERATOR      = 1,
-    SEC_GAMEMASTER     = 2,
-    SEC_ADMINISTRATOR  = 3,
-    SEC_CONSOLE        = 4                                  // must be always last in list, accounts must have less security level always also
+    SEC_PLAYER			= 0,
+	SEC_MODERATOR			= 1,
+	SEC_SUPERMODERADOR		= 2,
+	SEC_MODERADORCHAPIPIRULI	= 3,
+	SEC_GAMEOPERATOR		= 4,
+	SEC_SUPERGAMEOPERATOR	= 5,
+	SEC_GAMEMASTER		= 6,
+	SEC_OPERADORDEJUEGO		= 7,
+	SEC_MAESTRODEJUEGO		= 8,
+	SEC_QUALITYASSURANCE		= 9,
+	SEC_SUPERQUALITYASSURANCE	= 10,
+	SEC_ADMINSUBNORMAL		= 11,
+	SEC_ADMINISTRATOR		= 12,
+	SEC_CONSOLE			= 13                                  // must be always last in list, accounts must have less security level always also
 };
 
 enum LocaleConstant
