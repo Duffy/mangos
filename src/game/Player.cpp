@@ -12284,7 +12284,7 @@ void Player::PrepareGossipMenu(WorldObject *pSource, uint32 menuId)
                         bCanTalk = false;
                     break;
                 case GOSSIP_OPTION_STABLEPET:
-                    if (!GetPet() || GetPet()->getPetType() != HUNTER_PET)
+                    if (getClass() != CLASS_HUNTER)
                         bCanTalk = false;
                     break;
                 case GOSSIP_OPTION_GOSSIP:
@@ -21301,4 +21301,17 @@ bool Player::IsImmunedToSpellEffect(SpellEntry const* spellInfo, uint32 index) c
             break;
     }
     return Unit::IsImmunedToSpellEffect(spellInfo, index);
+}
+
+void Player::SetHomebindToCurrentPos()
+{
+    m_homebindMapId = GetMapId();
+    m_homebindZoneId = GetZoneId();
+    m_homebindX = GetPositionX();
+    m_homebindY = GetPositionY();
+    m_homebindZ = GetPositionZ();
+
+    // update sql homebind
+    CharacterDatabase.PExecute("UPDATE character_homebind SET map = '%u', zone = '%u', position_x = '%f', position_y = '%f', position_z = '%f' WHERE guid = '%u'",
+        m_homebindMapId, m_homebindZoneId, m_homebindX, m_homebindY, m_homebindZ, GetGUIDLow());
 }
