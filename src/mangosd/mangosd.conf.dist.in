@@ -184,6 +184,20 @@ MaxCoreStuckTime = 0
 AddonChannel = 1
 
 ###################################################################################################################
+# ACE mtmaps Config
+#
+#    ACE mtmaps
+#    MapUpdate.Threads
+#        Number of threads to run if the binary was compiled with mtmaps support.
+#        Default: 1
+#        For stable work 4 (if online ~2000)
+#        1 (minimum, normal behavior (single-threaded updates)
+#
+###################################################################################################################
+
+MapUpdate.Threads = 1
+
+###################################################################################################################
 # SERVER LOGGING
 #
 #    LogSQL
