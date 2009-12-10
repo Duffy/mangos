@@ -238,6 +238,9 @@ SpellSpecific GetSpellSpecific(uint32 spellId)
             if ((spellInfo->SpellFamilyFlags & UI64LIT(0x1000000)) && spellInfo->EffectApplyAuraName[0]==SPELL_AURA_MOD_CONFUSE)
                 return SPELL_MAGE_POLYMORPH;
 
+            if (spellInfo->SpellFamilyFlags & UI64LIT(0x2000000000000))
+                return SPELL_MAGE_BOMB;
+
             break;
         }
         case SPELLFAMILY_WARRIOR:
@@ -341,6 +344,7 @@ bool IsSingleFromSpellSpecificPerTargetPerCaster(SpellSpecific spellSpec1,SpellS
         case SPELL_POSITIVE_SHOUT:
         case SPELL_JUDGEMENT:
         case SPELL_HAND:
+        case SPELL_MAGE_BOMB:
             return spellSpec1==spellSpec2;
         default:
             return false;
@@ -356,6 +360,7 @@ bool IsSingleFromSpellSpecificSpellRanksPerTarget(SpellSpecific spellSpec1,Spell
         case SPELL_AURA:
         case SPELL_CURSE:
         case SPELL_HAND:
+        case SPELL_MAGE_BOMB:
             return spellSpec1==spellSpec2;
         default:
             return false;
@@ -430,6 +435,20 @@ bool IsPositiveEffect(uint32 spellId, uint32 effIndex)
 {
     SpellEntry const *spellproto = sSpellStore.LookupEntry(spellId);
     if (!spellproto) return false;
+
+    switch(spellId)
+    {
+        case 36032:                                         // Arcane Blast
+        case 47540:                                         // Penance start dummy aura - Rank 1
+        case 53005:                                         // Penance start dummy aura - Rank 2
+        case 53006:                                         // Penance start dummy aura - Rank 3
+        case 53007:                                         // Penance start dummy aura - Rank 4
+        case 47757:                                         // Penance heal effect trigger - Rank 1
+        case 52986:                                         // Penance heal effect trigger - Rank 2
+        case 52987:                                         // Penance heal effect trigger - Rank 3
+        case 52988:                                         // Penance heal effect trigger - Rank 4
+            return true;
+    }
 
     switch(spellproto->Effect[effIndex])
     {
@@ -726,7 +745,11 @@ SpellCastResult GetErrorAtShapeshiftedCast (SpellEntry const *spellInfo, uint32 
     if(actAsShifted)
     {
         if (spellInfo->Attributes & SPELL_ATTR_NOT_SHAPESHIFT) // not while shapeshifted
-            return SPELL_FAILED_NOT_SHAPESHIFT;
+        {
+            //but we must allow cast of Berserk+modifier from any form... where for the hell should we do it?
+            if (!(spellInfo->SpellIconID == 1680 && (spellInfo->AttributesEx & 0x8000)))
+                return SPELL_FAILED_NOT_SHAPESHIFT;
+        }
         else if (spellInfo->Stances != 0)                   // needs other shapeshift
             return SPELL_FAILED_ONLY_SHAPESHIFT;
     }
@@ -1352,6 +1375,18 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                         (spellInfo_2->Id == 8326 && spellInfo_1->Id == 20584) )
                          return false;
 
+                    // Sextant of Unstable Currents and Band of the Eternal Sage
+                    if( spellInfo_1->SpellIconID == 502 && spellInfo_2->SpellIconID == 502 )
+                        return false;
+
+                    // Lightning Speed and Crushing Waves
+                    if( spellInfo_1->SpellIconID == 2010 && spellInfo_2->SpellIconID == 2010 )
+                        return false;
+
+                    //Kindred Spirits (allow stack for auras)
+                    if (spellInfo_1->SpellIconID == 3559 && spellInfo_2->SpellIconID == 3559)
+                        return false;
+
                     break;
                 }
                 case SPELLFAMILY_MAGE:
@@ -1426,6 +1461,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
         case SPELLFAMILY_MAGE:
             if( spellInfo_2->SpellFamilyName == SPELLFAMILY_MAGE )
             {
+                // Living Bomb & Ignite
+                if( (spellInfo_1->SpellIconID == 3000) && (spellInfo_2->SpellIconID == 937) ||
+                    (spellInfo_2->SpellIconID == 3000) && (spellInfo_1->SpellIconID == 937) )
+                    return false;
+
                 // Blizzard & Chilled (and some other stacked with blizzard spells
                 if( (spellInfo_1->SpellFamilyFlags & UI64LIT(0x80)) && (spellInfo_2->SpellFamilyFlags & UI64LIT(0x100000)) ||
                     (spellInfo_2->SpellFamilyFlags & UI64LIT(0x80)) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x100000)) )
@@ -1440,12 +1480,31 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
             if( spellInfo_2->Id == 132 && spellInfo_1->SpellIconID == 209 && spellInfo_1->SpellVisual[0] == 968 )
                 return false;
 
+            // Arcane Intellect and Dalaran Intellect
+            if( spellInfo_1->Id == 61024 && spellInfo_2->SpellIconID == 125 ||
+                spellInfo_2->Id == 61024 && spellInfo_1->SpellIconID == 125 ||
+                spellInfo_1->Id == 61024 && spellInfo_2->SpellIconID == 1694 ||
+                spellInfo_2->Id == 61024 && spellInfo_1->SpellIconID == 1694 ||
+                spellInfo_1->Id == 61316 && spellInfo_2->SpellIconID == 125 ||
+                spellInfo_2->Id == 61316 && spellInfo_1->SpellIconID == 125 ||
+                spellInfo_1->Id == 61316 && spellInfo_2->SpellIconID == 1694 ||
+                spellInfo_2->Id == 61316 && spellInfo_1->SpellIconID == 1694 )
+                return true;                        // can't be stacked
+
             // Combustion and Fire Protection Aura (multi-family check)
             if( spellInfo_1->Id == 11129 && spellInfo_2->SpellIconID == 33 && spellInfo_2->SpellVisual[0] == 321 )
                 return false;
 
             // Arcane Intellect and Insight
             if( spellInfo_1->SpellIconID == 125 && spellInfo_2->Id == 18820 )
+                return false;
+
+            if( spellInfo_1->EffectSpellClassMaskC[0] == 262144 && spellInfo_2->EffectSpellClassMaskC[0] == 262144)
+                return false;
+
+            // Fire Ward and Fire Shield (multi-family check)
+            if ((spellInfo_1->SpellIconID == 16) && (spellInfo_1->SpellFamilyFlags & UI64LIT(0x0000000000000008)) &&
+                (spellInfo_2->SpellIconID == 16) && (spellInfo_2->SpellFamilyName == SPELLFAMILY_WARLOCK))
                 return false;
 
             break;
@@ -1476,10 +1535,24 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Metamorphosis, diff effects
                 if (spellInfo_1->SpellIconID == 3314 && spellInfo_2->SpellIconID == 3314)
                     return false;
+
+                // Nether Protection effects
+                if( spellInfo_2->SpellIconID==1985 && spellInfo_1->SpellIconID==1985 && spellInfo_1->SpellVisual[0]==9750 )
+                    return false;
+
+                // Shadow Embrace (two different effects must be stack)
+                if (spellInfo_1->SpellIconID == 2209 && spellInfo_2->SpellIconID == 2209)
+                    return false;
             }
             // Detect Invisibility and Mana Shield (multi-family check)
             if( spellInfo_1->Id == 132 && spellInfo_2->SpellIconID == 209 && spellInfo_2->SpellVisual[0] == 968 )
                 return false;
+
+            // Fire Shield and Fire Ward (multi-family check)
+            if ((spellInfo_1->SpellIconID == 16) &&
+                (spellInfo_2->SpellIconID == 16) && (spellInfo_2->SpellFamilyFlags & UI64LIT(0x0000000000000008)))
+                return false;
+
             break;
         case SPELLFAMILY_WARRIOR:
             if( spellInfo_2->SpellFamilyName == SPELLFAMILY_WARRIOR )
@@ -1492,6 +1565,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Battle Shout and Rampage
                 if( (spellInfo_1->SpellIconID == 456 && spellInfo_2->SpellIconID == 2006) ||
                     (spellInfo_2->SpellIconID == 456 && spellInfo_1->SpellIconID == 2006) )
+                    return false;
+
+                // Taste of Blood and Sudden Death
+                if( (spellInfo_1->Id == 52437 && spellInfo_2->Id == 60503) ||
+                    (spellInfo_2->Id == 52437 && spellInfo_1->Id == 60503) )
                     return false;
             }
 
@@ -1632,6 +1710,14 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if (IsSealSpell(spellInfo_1) && IsSealSpell(spellInfo_2))
                     return true;
 
+                // Concentration aura and Aura Mastery.
+                if (spellInfo_2->Id == 19746 && spellInfo_1->Id == 64364)
+                    return false;
+
+                // Other auras remove Aura Mastery immunity effect.
+                if (spellInfo_1->SpellFamilyFlags2 == UI64LIT(0x20) && spellInfo_2->Id == 64364)
+                    return true;
+
                 // Swift Retribution / Improved Devotion Aura (talents) and Paladin Auras
                 if ((spellInfo_1->SpellFamilyFlags2 & 0x00000020) && (spellInfo_2->SpellIconID == 291 || spellInfo_2->SpellIconID == 3028) ||
                     (spellInfo_2->SpellFamilyFlags2 & 0x00000020) && (spellInfo_1->SpellIconID == 291 || spellInfo_1->SpellIconID == 3028))
@@ -1645,10 +1731,18 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if ((spellInfo_1->SpellIconID == 1487) && (spellInfo_2->SpellIconID == 1487))
                     return false;
 
+                // Seal of Corruption
+                if (spellInfo_1->SpellIconID == 2292 && spellInfo_2->SpellIconID == 2292)
+                    return false;
             }
 
             // Blessing of Sanctuary (multi-family check, some from 16 spell icon spells)
             if (spellInfo_2->Id == 67480 && spellInfo_1->Id == 20911)
+                return false;
+
+            // Inner Fire and Consecration
+            if(spellInfo_2->SpellFamilyName == SPELLFAMILY_PRIEST)
+                if(spellInfo_1->SpellIconID == 51 && spellInfo_2->SpellIconID == 51)
                 return false;
 
             // Combustion and Fire Protection Aura (multi-family check)
@@ -1689,6 +1783,32 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 // Unholy Presence and Unholy Presence (triggered)
                 if( spellInfo_1->SpellIconID == 2633 && spellInfo_2->SpellIconID == 2633 )
                     return false;
+
+                // Lichborne shapeshift and immunity
+                if (spellInfo_1->SpellFamilyFlags == UI64LIT(0x1000000000) && spellInfo_2->SpellFamilyFlags == UI64LIT(0x1000000000))
+                    return false;
+
+                // Ebon Plague must replace Crypt Fever.
+                if( (spellInfo_1->Attributes & 0x40000) && (spellInfo_1->AttributesEx & 0x8) &&
+                    (spellInfo_2->Attributes & 0x10) && (spellInfo_2->AttributesEx3 & 0x40000000) )
+                    return true;
+
+                // Higher rank Crypt Fever must replace lower.
+                if( (spellInfo_1->Attributes & 0x10) && (spellInfo_1->AttributesEx3 & 0x40000000) &&
+                    (spellInfo_2->Attributes & 0x10) && (spellInfo_2->AttributesEx3 & 0x40000000) &&
+                    spellInfo_1->Id > spellInfo_2->Id )
+                    return true;
+
+                // Higher rank Ebon Plague must replace lower.
+                if( (spellInfo_1->Attributes & 0x40000) && (spellInfo_1->AttributesEx & 0x8) &&
+                    (spellInfo_2->Attributes & 0x40000) && (spellInfo_2->AttributesEx & 0x8) &&
+                    spellInfo_1->Id > spellInfo_2->Id)
+                    return true;
+
+                // Improved Blood Presence and Blood Presence
+                if( (spellInfo_1->Id == 48266 && spellInfo_2->Id == 63611) ||
+                    ( spellInfo_2->Id == 48266 && spellInfo_1->Id == 63611) )
+                    return true;
             }
             break;
         default:
@@ -2653,7 +2773,9 @@ void SpellMgr::LoadSpellAreas()
         spellArea.gender              = Gender(fields[7].GetUInt8());
         spellArea.autocast            = fields[8].GetBool();
 
-        if(!sSpellStore.LookupEntry(spell))
+        if(const SpellEntry* spellInfo = sSpellStore.LookupEntry(spell))
+            const_cast<SpellEntry*>(spellInfo)->Attributes |= SPELL_ATTR_CANT_CANCEL;
+        else
         {
             sLog.outErrorDb("Spell %u listed in `spell_area` does not exist", spell);
             continue;

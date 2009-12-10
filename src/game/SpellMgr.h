@@ -103,6 +103,7 @@ enum SpellSpecific
     SPELL_FOOD              = 20,
     SPELL_DRINK             = 21,
     SPELL_FOOD_AND_DRINK    = 22,
+    SPELL_MAGE_BOMB         = 23,
 };
 
 SpellSpecific GetSpellSpecific(uint32 spellId);
@@ -872,6 +873,16 @@ class SpellMgr
                     return true;
 
             return false;
+        }
+
+        uint8 IsHighestRankOfSpell(uint32 spell) const
+        {
+            SpellChainMapNext::const_iterator itr = mSpellChainsNext.find(spell);
+
+            if (!(itr == mSpellChainsNext.end()) && (itr->second)) // the spell is in the chain list and a higher-rank spell is available
+                return false;
+            else
+                return true;
         }
 
         bool IsRankSpellDueToSpell(SpellEntry const *spellInfo_1,uint32 spellId_2) const;

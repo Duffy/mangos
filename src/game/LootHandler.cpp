@@ -25,6 +25,7 @@
 #include "ObjectAccessor.h"
 #include "ObjectDefines.h"
 #include "WorldSession.h"
+#include "InstanceSaveMgr.h"
 #include "LootMgr.h"
 #include "Object.h"
 #include "Group.h"
@@ -296,6 +297,29 @@ void WorldSession::DoLootRelease( uint64 lguid )
 
         loot = &go->loot;
 
+        if(go->GetGoType() == GAMEOBJECT_TYPE_CHEST)
+        {
+            if (player->GetInstanceId())
+            {
+                Map *map = go->GetMap();
+                if (map->IsDungeon())
+                {
+                    if (map->IsRaidOrHeroicDungeon())
+                    {
+                        ((InstanceMap *)map)->PermBindAllPlayers(player);
+                    }
+                    else
+                    {
+                        // the reset time is set but not added to the scheduler
+                        // until the players leave the instance
+                        time_t resettime = go->GetRespawnTimeEx() + 2 * HOUR;
+                        if(InstanceSave *save = sInstanceSaveMgr.GetInstanceSave(player->GetInstanceId()))
+                            if(save->GetResetTime() < resettime)
+                                save->SetResetTime(resettime);
+                    }
+                }
+            }
+        }
         if (go->GetGoType() == GAMEOBJECT_TYPE_DOOR)
         {
             // locked doors are opened with spelleffect openlock, prevent remove its as looted

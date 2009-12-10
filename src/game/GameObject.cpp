@@ -431,13 +431,7 @@ void GameObject::Update(uint32 /*p_time*/)
             if(!m_respawnDelayTime)
                 return;
 
-            if(!m_spawnedByDefault)
-            {
-                m_respawnTime = 0;
-                return;
-            }
-
-            m_respawnTime = time(NULL) + m_respawnDelayTime;
+            m_respawnTime = m_spawnedByDefault ? time(NULL) + m_respawnDelayTime : 0;
 
             // if option not set then object will be saved at grid unload
             if(sWorld.getConfig(CONFIG_SAVE_RESPAWN_TIME_IMMEDIATLY))
@@ -1108,12 +1102,30 @@ void GameObject::Use(Unit* user)
                 return;
 
             spellId = info->summoningRitual.spellId;
-            if(spellId==62330)                              // GO store not existed spell, replace by expected
+            switch (spellId)                              // GO store not existed spell, replace by expected
             {
-                // spell have reagent and mana cost but it not expected use its
-                // it triggered spell in fact casted at currently channeled GO
-                spellId = 61993;
-                triggered = true;
+                case 62330:
+                {
+                    // spell have reagent and mana cost but it not expected use its
+                    // it triggered spell in fact casted at currently channeled GO
+                    spellId = 61993;
+                    triggered = true;
+                    break;
+                }
+                case 34145:
+                {
+                    spellId = 29886;
+                    triggered = true;
+                    break;
+                }
+                case 58888:
+                {
+                    spellId = 58889;
+                    triggered = true;
+                    break;
+                }
+                default:
+                    break;
             }
 
             // finish spell

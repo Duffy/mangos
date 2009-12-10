@@ -87,6 +87,9 @@ enum MangosStrings
     LANG_RA_USER                        = 61,
     LANG_RA_PASS                        = 62,
     // Room for more level 0              63-99 not used
+    LANG_SYSTEMMESSAGE_MODERATOR        = 97,
+    LANG_SYSTEMMESSAGE_GAMEMASTER       = 98,
+    LANG_SYSTEMMESSAGE_ADMINISTRATOR    = 99,
 
     // level 1 chat
     LANG_GLOBAL_NOTIFY                  = 100,
@@ -824,6 +827,9 @@ enum MangosStrings
     // Room for more debug                1202-1299 not used
 
     // FREE IDS                           1300-9999
+
+    // Broadcaster
+    LANG_AUTO_BROADCAST                 = 1300,
 
     // Use for not-in-offcial-sources patches
     //                                    10000-10999

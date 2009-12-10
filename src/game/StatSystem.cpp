@@ -39,11 +39,19 @@ bool Player::UpdateStats(Stats stat)
 
     SetStat(stat, int32(value));
 
-    if(stat == STAT_STAMINA || stat == STAT_INTELLECT)
+                                                          // deathknight's ghoul benefit from owner's strength
+    if(stat == STAT_STAMINA || stat == STAT_INTELLECT || stat == STAT_STRENGTH)
     {
         Pet *pet = GetPet();
         if(pet)
+        {
             pet->UpdateStats(stat);
+            if (getClass() == CLASS_DEATH_KNIGHT && pet->getPetType() == SUMMON_PET)
+            {
+                pet->RemoveAllAuras();
+                pet->CastPetAuras(true);
+            }
+        }
     }
 
     switch(stat)
@@ -439,6 +447,12 @@ void Player::CalculateMinMaxDamage(WeaponAttackType attType, bool normalized, fl
     {
         weapon_mindamage += GetAmmoDPS() * att_speed;
         weapon_maxdamage += GetAmmoDPS() * att_speed;
+    }
+
+    if (attType == BASE_ATTACK)
+    {
+        int32 ModSpeed = GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKSPEED);
+        base_pct = base_pct * 100.0f/(100.0f+float(ModSpeed));
     }
 
     min_damage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct;
@@ -843,6 +857,9 @@ void Creature::UpdateDamagePhysical(WeaponAttackType attType)
     float weapon_mindamage = GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE);
     float weapon_maxdamage = GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE);
 
+    int32 ModSpeed = GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKSPEED);
+    base_pct = base_pct * 100.0f/(100.0f+float(ModSpeed));
+
     float mindamage = ((base_value + weapon_mindamage) * dmg_multiplier * base_pct + total_value) * total_pct;
     float maxdamage = ((base_value + weapon_maxdamage) * dmg_multiplier * base_pct + total_value) * total_pct;
 
@@ -869,6 +886,13 @@ bool Pet::UpdateStats(Stats stat)
     {
         if(owner)
             value += float(owner->GetStat(stat)) * 0.3f;
+    }
+    else if ( stat == STAT_STRENGTH && getPetType() == SUMMON_PET )
+    {
+        if (owner && (owner->getClass() == CLASS_DEATH_KNIGHT))
+        {
+            value += float(owner->GetStat(stat)) * 0.3f;
+        }
     }
                                                             //warlock's and mage's pets gain 30% of owner's intellect
     else if ( stat == STAT_INTELLECT && getPetType() == SUMMON_PET )
@@ -993,6 +1017,12 @@ void Pet::UpdateAttackPowerAndDamage(bool ranged)
             bonusAP = owner->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.22f;
             SetBonusDamage( int32(owner->GetTotalAttackPowerValue(RANGED_ATTACK) * 0.1287f));
         }
+        //ghouls benefit from deathknight's attack power
+        else if(getPetType() == SUMMON_PET && owner->getClass() == CLASS_DEATH_KNIGHT)
+        {
+            bonusAP = owner->GetTotalAttackPowerValue(BASE_ATTACK) * 0.22f;
+            SetBonusDamage( int32(owner->GetTotalAttackPowerValue(BASE_ATTACK) * 0.1287f));
+        }
         //demons benefit from warlocks shadow or fire damage
         else if(getPetType() == SUMMON_PET && owner->getClass() == CLASS_WARLOCK)
         {
@@ -1048,6 +1078,9 @@ void Pet::UpdateDamagePhysical(WeaponAttackType attType)
 
     float weapon_mindamage = GetWeaponDamageRange(BASE_ATTACK, MINDAMAGE);
     float weapon_maxdamage = GetWeaponDamageRange(BASE_ATTACK, MAXDAMAGE);
+
+    int32 ModSpeed = GetTotalAuraModifier(SPELL_AURA_MOD_ATTACKSPEED);
+    base_pct = base_pct * 100.0f/(100.0f+float(ModSpeed));
 
     float mindamage = ((base_value + weapon_mindamage) * base_pct + total_value) * total_pct;
     float maxdamage = ((base_value + weapon_maxdamage) * base_pct + total_value) * total_pct;

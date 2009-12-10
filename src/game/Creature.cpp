@@ -127,6 +127,8 @@ m_creatureInfo(NULL), m_isActiveObject(false), m_monsterMoveFlags(MONSTER_MOVE_W
     m_GlobalCooldown = 0;
 
     m_monsterMoveFlags = MONSTER_MOVE_WALK;
+
+    ResetObtainedDamage();
 }
 
 Creature::~Creature()
@@ -159,7 +161,7 @@ void Creature::RemoveFromWorld()
 
 void Creature::RemoveCorpse()
 {
-    if ((getDeathState() != CORPSE && !m_isDeadByDefault) || (getDeathState() != ALIVE && m_isDeadByDefault))
+    if (((getDeathState() != CORPSE && getDeathState() != GHOULED) && !m_isDeadByDefault) || (getDeathState() != ALIVE && m_isDeadByDefault))
         return;
 
     m_deathTimer = 0;
@@ -377,6 +379,7 @@ void Creature::Update(uint32 diff)
             }
             break;
         }
+        case GHOULED:
         case CORPSE:
         {
             if (m_isDeadByDefault)
@@ -1243,6 +1246,7 @@ void Creature::setDeathState(DeathState s)
     {
         SetHealth(GetMaxHealth());
         SetLootRecipient(NULL);
+        ResetObtainedDamage();
         CreatureInfo const *cinfo = GetCreatureInfo();
         SetUInt32Value(UNIT_DYNAMIC_FLAGS, 0);
         RemoveFlag (UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
@@ -1763,6 +1767,10 @@ void Creature::AddCreatureSpellCooldown(uint32 spellid)
         return;
 
     uint32 cooldown = GetSpellRecoveryTime(spellInfo);
+    // apply spellmod (in case creature is pet)
+    if(Player* modOwner = GetSpellModOwner())
+        modOwner->ApplySpellMod(spellid, SPELLMOD_COOLDOWN, cooldown);
+
     if(cooldown)
         _AddCreatureSpellCooldown(spellid, time(NULL) + cooldown/IN_MILISECONDS);
 

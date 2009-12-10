@@ -132,6 +132,34 @@ bool ChatHandler::HandleAnnounceCommand(const char* args)
     return true;
 }
 
+// Nameannounce
+bool ChatHandler::HandleNameAnnounceCommand(const char* args)
+{
+    int32 strid = 0;
+
+    if(!*args)
+        return false;
+
+    switch(m_session->GetSecurity())
+    {
+      case SEC_MODERATOR:
+        strid = LANG_SYSTEMMESSAGE_MODERATOR;
+        break;
+      case SEC_GAMEMASTER:
+        strid = LANG_SYSTEMMESSAGE_GAMEMASTER;
+        break;
+      case SEC_ADMINISTRATOR:
+        strid = LANG_SYSTEMMESSAGE_ADMINISTRATOR;
+        break;
+      default:
+        return false;
+    }
+
+    sWorld.SendWorldText(strid, m_session->GetPlayerName(), args);
+
+    return true;
+}
+
 //notification player at the screen
 bool ChatHandler::HandleNotifyCommand(const char* args)
 {
@@ -1320,7 +1348,7 @@ bool ChatHandler::HandleModifyScaleCommand(const char* args)
         return false;
 
     float Scale = (float)atof((char*)args);
-    if (Scale > 3.0f || Scale <= 0.0f)
+    if (Scale > 15.0f || Scale <= 0.0f)
     {
         SendSysMessage(LANG_BAD_VALUE);
         SetSentErrorMessage(true);
