@@ -6130,6 +6130,18 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 // 4 damage tick
                 basepoints0 = triggerAmount*damage/400;
                 triggered_spell_id = 61840;
+
+                Unit::AuraList const &periodicAuras = target->GetAurasByType(SPELL_AURA_PERIODIC_DAMAGE);
+                for(Unit::AuraList::const_iterator i = periodicAuras.begin(); i != periodicAuras.end(); ++i)
+                {
+                    if ((*i)->GetCasterGUID() == GetGUID() && (*i)->GetSpellProto()->SpellIconID == 3025 &&
+                        (*i)->GetSpellProto()->SpellVisual[0] == 5652)
+                    {
+                        int32 tickremains = int32((*i)->GetAuraDuration() / (*i)->GetModifier()->periodictime);
+                        basepoints0 += int32((*i)->GetModifier()->m_amount * tickremains / 4);
+                        break;
+                    }
+                }
                 break;
             }
             // Sheath of Light
