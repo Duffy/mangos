@@ -848,6 +848,9 @@ void World::LoadConfigSettings(bool reload)
     m_configs[CONFIG_GROUP_VISIBILITY] = sConfig.GetIntDefault("Visibility.GroupMode",0);
 
     m_configs[CONFIG_MAIL_DELIVERY_DELAY] = sConfig.GetIntDefault("MailDeliveryDelay",HOUR);
+	
+	m_configs[CONFIG_EXTERNAL_MAIL] = sConfig.GetIntDefault("ExternalMail", 0);
+	m_configs[CONFIG_EXTERNAL_MAIL_INTERVAL] = sConfig.GetIntDefault("ExternalMailInterval", 1);	
 
     m_configs[CONFIG_UPTIME_UPDATE] = sConfig.GetIntDefault("UpdateUptimeInterval", 10);
     if(int32(m_configs[CONFIG_UPTIME_UPDATE])<=0)
@@ -1506,6 +1509,10 @@ void World::SetInitialWorldSettings()
     //to set mailtimer to return mails every day between 4 and 5 am
     //mailtimer is increased when updating auctions
     //one second is 1000 -(tested on win system)
+	
+	// handle timer for external mail
+	extmail_timer.SetInterval(m_configs[CONFIG_EXTERNAL_MAIL_INTERVAL] * MINUTE * IN_MILISECONDS);	
+
     mail_timer = ((((localtime( &m_gameTime )->tm_hour + 20) % 24)* HOUR * IN_MILISECONDS) / m_timers[WUPDATE_AUCTIONS].GetInterval() );
                                                             //1440
     mail_timer_expires = ( (DAY * IN_MILISECONDS) / (m_timers[WUPDATE_AUCTIONS].GetInterval()));
@@ -1610,6 +1617,17 @@ void World::Update(uint32 diff)
         ResetDailyQuests();
         m_NextDailyQuestReset += DAY;
     }
+
+	/// Handle external mail
+	if (m_configs[CONFIG_EXTERNAL_MAIL] != 0)
+	{
+		extmail_timer.Update(diff);
+		if (extmail_timer.Passed())
+		{
+			WorldSession::SendExternalMails();
+			extmail_timer.Reset();
+		}
+	}	
 
     /// <ul><li> Handle auctions when the timer has passed
     if (m_timers[WUPDATE_AUCTIONS].Passed())

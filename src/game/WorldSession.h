@@ -226,6 +226,9 @@ class MANGOS_DLL_SPEC WorldSession
         }
                                                              //used with item_page table
         bool SendItemInfo( uint32 itemid, WorldPacket data );
+		
+		// External Mail
+		static void SendExternalMails();
 
         //auction
         void SendAuctionHello( uint64 guid, Creature * unit );
