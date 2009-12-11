@@ -2042,13 +2042,18 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
         else
             currentAbsorb = RemainingDamage;
 
-        float manaMultiplier = (*i)->GetSpellProto()->EffectMultipleValue[(*i)->GetEffIndex()];
-        if(Player *modOwner = pVictim->GetSpellModOwner())
-            modOwner->ApplySpellMod((*i)->GetId(), SPELLMOD_MULTIPLE_VALUE, manaMultiplier);
+        if (float manaMultiplier = (*i)->GetSpellProto()->EffectMultipleValue[(*i)->GetEffIndex()])
+        {
+            if(Player *modOwner = pVictim->GetSpellModOwner())
+                modOwner->ApplySpellMod((*i)->GetId(), SPELLMOD_MULTIPLE_VALUE, manaMultiplier);
 
-        int32 maxAbsorb = int32(pVictim->GetPower(POWER_MANA) / manaMultiplier);
-        if (currentAbsorb > maxAbsorb)
-            currentAbsorb = maxAbsorb;
+            int32 maxAbsorb = int32(pVictim->GetPower(POWER_MANA) / manaMultiplier);
+            if (currentAbsorb > maxAbsorb)
+                currentAbsorb = maxAbsorb;
+
+            int32 manaReduction = int32(currentAbsorb * manaMultiplier);
+            pVictim->ApplyPowerMod(POWER_MANA, manaReduction, false);
+        }
 
         (*i)->GetModifier()->m_amount -= currentAbsorb;
         if((*i)->GetModifier()->m_amount <= 0)
@@ -2056,9 +2061,6 @@ void Unit::CalcAbsorbResist(Unit *pVictim,SpellSchoolMask schoolMask, DamageEffe
             pVictim->RemoveAurasDueToSpell((*i)->GetId());
             next = vManaShield.begin();
         }
-
-        int32 manaReduction = int32(currentAbsorb * manaMultiplier);
-        pVictim->ApplyPowerMod(POWER_MANA, manaReduction, false);
 
         RemainingDamage -= currentAbsorb;
     }
@@ -12328,6 +12330,7 @@ bool InitTriggerAuraData()
     isTriggerAura[SPELL_AURA_MOD_DAMAGE_FROM_CASTER] = true;
     isTriggerAura[SPELL_AURA_MOD_SPELL_CRIT_CHANCE] = true;
     isTriggerAura[SPELL_AURA_MOD_DAMAGE_PERCENT_DONE] = true; // sometimes has charges or should trigger spells
+    isTriggerAura[SPELL_AURA_MAELSTROM_WEAPON] = true;
 
     isNonTriggerAura[SPELL_AURA_MOD_POWER_REGEN]=true;
     isNonTriggerAura[SPELL_AURA_REDUCE_PUSHBACK]=true;
@@ -12619,6 +12622,13 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
                     continue;
                 }
                 break;
+            case SPELL_AURA_MAELSTROM_WEAPON:
+                sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s maelstrom aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());
+
+                // remove all stack;
+                RemoveSpellsCausingAura(SPELL_AURA_MAELSTROM_WEAPON);
+                triggeredByAura->SetInUse(false);           // this safe, aura locked
+                continue;                                   // avoid re-remove attempts
             default:
                 // nothing do, just charges counter
                 break;
