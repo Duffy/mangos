@@ -21043,6 +21043,8 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket *data)
                     TalentEntry const* talentInfo = sTalentStore.LookupEntry(talentId);
                     if(!talentInfo)
                         continue;
+					
+					haveLearnedMaxRank=false;
 
                     // skip another tab talents
                     if(talentInfo->TalentTab != talentTabId)
@@ -21595,6 +21597,7 @@ void Player::ActivateSpec(uint8 spec)
 
     SetActiveSpec(spec);
     uint32 spentTalents = 0;
+	bool haveLearnedMaxRank=false;
 
     for (uint32 talentId = 0; talentId < sTalentStore.GetNumRows(); ++talentId)
     {
@@ -21619,10 +21622,11 @@ void Player::ActivateSpec(uint8 spec)
             if (talentInfo->RankID[rank] == 0)
                 continue;
             // if the talent can be found in the newly activated PlayerTalentMap
-            if (HasTalent(talentInfo->RankID[rank], m_activeSpec))
+            if (HasTalent(talentInfo->RankID[rank], m_activeSpec) && !haveLearnedMaxRank)
             {
                 learnSpell(talentInfo->RankID[rank], false); // add the talent to the PlayerSpellMap
                 spentTalents += (rank + 1);                  // increment the spentTalents count
+				haveLearnedMaxRank=true;
             }
         }
     }
