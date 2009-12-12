@@ -2118,13 +2118,6 @@ void Spell::EffectDummy(uint32 i)
                 }
                 return;
             }
-            // Desecration
-            else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x8000000000000))
-            {
-                // "Desecrated land" visual effect
-                m_caster->CastSpell(unitTarget,55741,true);
-                return;
-            }
             // Hungering Cold
             else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000100000000000))
             {
@@ -2395,10 +2388,10 @@ void Spell::EffectTriggerSpell(uint32 effIndex)
         // main hand weapon required
         if (spellInfo->AttributesEx3 & SPELL_ATTR_EX3_MAIN_HAND)
         {
-            Item* item = ((Player*)m_caster)->GetWeaponForAttack(BASE_ATTACK);
+            Item* item = ((Player*)m_caster)->GetWeaponForAttack(BASE_ATTACK, true, false);
 
             // skip spell if no weapon in slot or broken
-            if (!item || item->IsBroken() )
+            if (!item)
                 return;
 
             // skip spell if weapon not fit to triggered spell
@@ -2409,10 +2402,10 @@ void Spell::EffectTriggerSpell(uint32 effIndex)
         // offhand hand weapon required
         if (spellInfo->AttributesEx3 & SPELL_ATTR_EX3_REQ_OFFHAND)
         {
-            Item* item = ((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK);
+            Item* item = ((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK, true, false);
 
             // skip spell if no weapon in slot or broken
-            if (!item || item->IsBroken() )
+            if (!item)
                 return;
 
             // skip spell if weapon not fit to triggered spell
@@ -4784,7 +4777,7 @@ void Spell::EffectWeaponDmg(uint32 i)
             // Whirlwind causes damage from both weapons
             if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->Id == 1680 || m_spellInfo->Id == 50622))
             {
-                if(((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK,true))
+                if(((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK, true, true))
                     AddTriggeredSpell(44949);
             }
             // Devastate bonus and sunder armor refresh
@@ -4844,7 +4837,7 @@ void Spell::EffectWeaponDmg(uint32 i)
             // Fan of Knives
             else if (m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0004000000000000)))
             {
-                Item* weapon = ((Player*)m_caster)->GetWeaponForAttack(m_attackType,true);
+                Item* weapon = ((Player*)m_caster)->GetWeaponForAttack(m_attackType,true,true);
                 if (weapon && weapon->GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_DAGGER)
                     totalDamagePercentMod *= 1.5f;          // 150% to daggers
             }
@@ -5008,13 +5001,13 @@ void Spell::EffectWeaponDmg(uint32 i)
     // take ammo
     if(m_attackType == RANGED_ATTACK && m_caster->GetTypeId() == TYPEID_PLAYER)
     {
-        Item *pItem = ((Player*)m_caster)->GetWeaponForAttack( RANGED_ATTACK );
+        Item *pItem = ((Player*)m_caster)->GetWeaponForAttack(RANGED_ATTACK, true, false);
 
         // wands don't have ammo
-        if(!pItem  || pItem->IsBroken() || pItem->GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_WAND)
+        if (!pItem || pItem->GetProto()->SubClass == ITEM_SUBCLASS_WEAPON_WAND)
             return;
 
-        if( pItem->GetProto()->InventoryType == INVTYPE_THROWN )
+        if (pItem->GetProto()->InventoryType == INVTYPE_THROWN)
         {
             if(pItem->GetMaxStackCount()==1)
             {
