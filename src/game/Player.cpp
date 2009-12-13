@@ -21052,8 +21052,6 @@ void Player::BuildPlayerTalentsInfoData(WorldPacket *data)
                     TalentEntry const* talentInfo = sTalentStore.LookupEntry(talentId);
                     if(!talentInfo)
                         continue;
-					
-					haveLearnedMaxRank=false;
 
                     // skip another tab talents
                     if(talentInfo->TalentTab != talentTabId)
@@ -21614,6 +21612,8 @@ void Player::ActivateSpec(uint8 spec)
 
         if (!talentInfo)
             continue;
+		
+		haveLearnedMaxRank=false;
 
         TalentTabEntry const *talentTabInfo = sTalentTabStore.LookupEntry(talentInfo->TalentTab);
 
