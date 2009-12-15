@@ -27,6 +27,7 @@
 #include "GridStates.h"
 
 class Transport;
+#define DEFAULT_VISIBILITY_NOTIFY_PERIOD      600
 
 class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockable<MapManager, ACE_Thread_Mutex> >
 {
@@ -123,6 +124,8 @@ class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::
         uint32 GenerateInstanceId() { return ++i_MaxInstanceId; }
         void InitMaxInstanceId();
         void InitializeVisibilityDistanceInfo();
+
+        void InitializeVisibilityNotifyTimers();
 
         /* statistics */
         uint32 GetNumInstances();

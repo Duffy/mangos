@@ -5712,10 +5712,16 @@ bool Player::SetPosition(float x, float y, float z, float orientation, bool tele
 
     // code block for underwater state update
     UpdateUnderwaterState(m, x, y, z);
-
+    CheckTradeDistance();
     CheckExploreSystem();
 
     return true;
+}
+
+void Player::CheckTradeDistance()
+{
+    if(GetTrader() && !IsWithinDistInMap(GetTrader(), INTERACTION_DISTANCE))
+        TradeCancel(true);
 }
 
 void Player::SaveRecallPosition()
@@ -11636,12 +11642,12 @@ void Player::TradeCancel(bool sendback)
     if (pTrader)
     {
         // send yellow "Trade canceled" message to both traders
-        WorldSession* ws;
-        ws = GetSession();
-        if (sendback)
+        WorldSession* ws = GetSession();
+        if (ws && sendback)
             ws->SendCancelTrade();
+
         ws = pTrader->GetSession();
-        if (!ws->PlayerLogout())
+        if (ws && !ws->PlayerLogout())
             ws->SendCancelTrade();
 
         // cleanup
@@ -17380,8 +17386,7 @@ void Player::HandleStealthedUnitsDetection()
 
                 // target aura duration for caster show only if target exist at caster client
                 // send data at target visibility change (adding to client)
-                if((*i)!=this && (*i)->isType(TYPEMASK_UNIT))
-                    SendAurasForTarget(*i);
+                (*i)->SendInitialVisiblePacketsFor(this);
             }
         }
         else
@@ -18559,8 +18564,7 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, WorldObject* targe
         if(target->isVisibleForInState(this, viewPoint, false))
         {
             target->SendCreateUpdateToPlayer(this);
-            if(target->GetTypeId()!=TYPEID_GAMEOBJECT||!((GameObject*)target)->IsTransport())
-                m_clientGUIDs.insert(target->GetGUID());
+            m_clientGUIDs.insert(target->GetGUID());
 
             #ifdef MANGOS_DEBUG
             if((sLog.getLogFilter() & LOG_FILTER_VISIBILITY_CHANGES)==0)
@@ -18569,30 +18573,34 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, WorldObject* targe
 
             // target aura duration for caster show only if target exist at caster client
             // send data at target visibility change (adding to client)
-            if(target!=this && target->isType(TYPEMASK_UNIT))
-                SendAurasForTarget((Unit*)target);
-
-            if(target->GetTypeId()==TYPEID_UNIT && ((Creature*)target)->isAlive())
-                ((Creature*)target)->SendMonsterMoveWithSpeedToCurrentDestination(this);
-        }
-    }
-}
-
+             if (target->isType(TYPEMASK_UNIT) && target != this)
+                 ((Unit*)target)->SendInitialVisiblePacketsFor(this);
+         }
+     }
+ }
+ 
 template<class T>
-inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, T* target)
+inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, std::set<Unit*>& visibleNow, T* target)
 {
     s64.insert(target->GetGUID());
 }
 
 template<>
-inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, GameObject* target)
+inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, std::set<Unit*>& visibleNow, Player* target)
 {
-    if(!target->IsTransport())
-        s64.insert(target->GetGUID());
+    s64.insert(target->GetGUID());
+    visibleNow.insert(target);
+}
+
+template<>
+inline void UpdateVisibilityOf_helper(std::set<uint64>& s64, std::set<Unit*>& visibleNow, Creature* target)
+{
+    s64.insert(target->GetGUID());
+    visibleNow.insert(target);
 }
 
 template<class T>
-void Player::UpdateVisibilityOf(WorldObject const* viewPoint, T* target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow)
+void Player::UpdateVisibilityOf(WorldObject const* viewPoint, T* target, UpdateData& data, std::set<Unit*>& visibleNow)
 {
     if(HaveAtClient(target))
     {
@@ -18613,9 +18621,8 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, T* target, UpdateD
     {
         if(target->isVisibleForInState(this,viewPoint,false))
         {
-            visibleNow.insert(target);
             target->BuildCreateUpdateBlockForPlayer(&data, this);
-            UpdateVisibilityOf_helper(m_clientGUIDs,target);
+            UpdateVisibilityOf_helper(m_clientGUIDs,visibleNow,target);
 
             #ifdef MANGOS_DEBUG
             if((sLog.getLogFilter() & LOG_FILTER_VISIBILITY_CHANGES)==0)
@@ -18625,11 +18632,11 @@ void Player::UpdateVisibilityOf(WorldObject const* viewPoint, T* target, UpdateD
     }
 }
 
-template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Player*        target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow);
-template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Creature*      target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow);
-template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Corpse*        target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow);
-template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, GameObject*    target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow);
-template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, DynamicObject* target, UpdateData& data, UpdateDataMapType& data_updates, std::set<WorldObject*>& visibleNow);
+template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Player*        target, UpdateData& data, std::set<Unit*>& visibleNow);
+template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Creature*      target, UpdateData& data, std::set<Unit*>& visibleNow);
+template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, Corpse*        target, UpdateData& data, std::set<Unit*>& visibleNow);
+template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, GameObject*    target, UpdateData& data, std::set<Unit*>& visibleNow);
+template void Player::UpdateVisibilityOf(WorldObject const* viewPoint, DynamicObject* target, UpdateData& data, std::set<Unit*>& visibleNow);
 
 void Player::InitPrimaryProfessions()
 {
@@ -18803,7 +18810,7 @@ void Player::SendInitialPacketsAfterAddToMap()
         SendMessageToSet(&data2,true);
     }
 
-    SendAurasForTarget(this);
+    SendAurasFor(this);
     SendEnchantmentDurations();                             // must be after add to map
     SendItemDurations();                                    // must be after add to map
 }
@@ -19034,56 +19041,6 @@ void Player::learnSkillRewardedSpells(uint32 skill_id, uint32 skill_value )
                 learnSpell(pAbility->spellId,true);
         }
     }
-}
-
-void Player::SendAurasForTarget(Unit *target)
-{
-    if(target->GetVisibleAuras()->empty())                  // speedup things
-        return;
-
-    WorldPacket data(SMSG_AURA_UPDATE_ALL);
-    data.append(target->GetPackGUID());
-
-    Unit::VisibleAuraMap const *visibleAuras = target->GetVisibleAuras();
-    for(Unit::VisibleAuraMap::const_iterator itr = visibleAuras->begin(); itr != visibleAuras->end(); ++itr)
-    {
-        for(uint32 j = 0; j < 3; ++j)
-        {
-            if(Aura *aura = target->GetAura(itr->second, j))
-            {
-                data << uint8(aura->GetAuraSlot());
-                data << uint32(aura->GetId());
-
-                if(aura->GetId())
-                {
-                    uint8 auraFlags = aura->GetAuraFlags();
-                    // flags
-                    data << uint8(auraFlags);
-                    // level
-                    data << uint8(aura->GetAuraLevel());
-                    // charges
-                    if (aura->GetAuraCharges())
-                        data << uint8(aura->GetAuraCharges() * aura->GetStackAmount());
-                    else
-                        data << uint8(aura->GetStackAmount());
-
-                    if(!(auraFlags & AFLAG_NOT_CASTER))
-                    {
-                        data << uint8(0);                   // packed GUID of someone (caster?)
-                    }
-
-                    if(auraFlags & AFLAG_DURATION)          // include aura duration
-                    {
-                        data << uint32(aura->GetAuraMaxDuration());
-                        data << uint32(aura->GetAuraDuration());
-                    }
-                }
-                break;
-            }
-        }
-    }
-
-    GetSession()->SendPacket(&data);
 }
 
 void Player::SetDailyQuestStatus( uint32 quest_id )
@@ -21237,17 +21194,17 @@ void Player::UpdateVisibilityForPlayer()
     CellPair p(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
     Cell cell(p);
 
-    m->UpdatePlayerVisibility(this, cell, p);
+    m->UpdatePlayerVisibility(this, viewPoint, cell, p);
 
     if (this != viewPoint)
     {
         CellPair pView(MaNGOS::ComputeCellPair(viewPoint->GetPositionX(), viewPoint->GetPositionY()));
         Cell cellView(pView);
 
-        m->UpdateObjectsVisibilityFor(this, cellView, pView);
+        m->UpdateObjectsVisibilityFor(this, viewPoint, cellView, pView);
     }
     else
-        m->UpdateObjectsVisibilityFor(this, cell, p);
+        m->UpdateObjectsVisibilityFor(this, viewPoint, cell, p);
 }
 
 void Player::SendDuelCountdown(uint32 counter)
