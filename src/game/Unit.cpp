@@ -9183,6 +9183,27 @@ uint32 Unit::SpellDamageBonus(Unit *pVictim, SpellEntry const *spellProto, uint3
             }
             break;
         }
+        case SPELLFAMILY_DRUID:
+        {
+            //Improved Insect Swarm [Wrath dmg]
+            if (spellProto->SpellFamilyFlags & UI64LIT(0x0001) && spellProto->SpellIconID == 263)
+            {
+                // No Insect Swarm owned by caster?
+                if(!pVictim->GetAura(SPELL_AURA_PERIODIC_DAMAGE,SPELLFAMILY_DRUID,UI64LIT(0x00200000),0,GetGUID()))
+                    break;
+
+                AuraList const& ImprovedAura = GetAurasByType(SPELL_AURA_DUMMY);
+                for(AuraList::const_iterator i = ImprovedAura.begin(); i != ImprovedAura.end(); ++i)
+                {
+                    if((*i)->GetSpellProto()->SpellIconID == 1771 && (*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID)
+                    {
+                        DoneTotalMod *= (100.0f + (*i)->GetModifier()->m_amount) / 100.0f;
+                        break;
+                    }
+                }
+            }
+            break;
+        }
         case SPELLFAMILY_DEATHKNIGHT:
         {
             // Icy Touch, Howling Blast and Frost Strike
@@ -9503,6 +9524,25 @@ bool Unit::isSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
                                     (*i)->GetSpellProto()->SpellIconID == 2542)
                                 {
                                     crit_chance+=(*i)->GetModifier()->m_amount;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    case SPELLFAMILY_DRUID:
+                        //Improved Insect Swarm [Starfire crit]
+                        if (spellProto->SpellFamilyFlags & UI64LIT(0x00000004) && spellProto->SpellIconID == 1485)
+                        {
+                            // No Moonfire owned by caster?
+                            if(!pVictim->GetAura(SPELL_AURA_PERIODIC_DAMAGE,SPELLFAMILY_DRUID,UI64LIT(0x0002),0,GetGUID()))
+                                break;
+
+                            AuraList const& ImprovedAura = GetAurasByType(SPELL_AURA_DUMMY);
+                            for(AuraList::const_iterator i = ImprovedAura.begin(); i != ImprovedAura.end(); ++i)
+                            {
+                                if((*i)->GetSpellProto()->SpellIconID == 1771 && (*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID)
+                                {
+                                    crit_chance += (*i)->GetModifier()->m_amount;
                                     break;
                                 }
                             }
