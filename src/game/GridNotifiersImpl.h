@@ -35,7 +35,19 @@ MaNGOS::VisibleNotifier::Visit(GridRefManager<T> &m)
     {
         vis_guids.erase(iter->getSource()->GetGUID());
 
-        if(force || iter->getSource()->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+        if(force)
+            i_player.UpdateVisibilityOf(&i_viewPoint,iter->getSource(),i_data,i_visibleNow);
+    }
+}
+
+inline void
+MaNGOS::VisibleNotifier::Visit(CreatureMapType &m)
+{
+    for(CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
+    {
+        vis_guids.erase(iter->getSource()->GetGUID());
+
+        if (force || iter->getSource()->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             i_player.UpdateVisibilityOf(&i_viewPoint,iter->getSource(),i_data,i_visibleNow);
     }
 }

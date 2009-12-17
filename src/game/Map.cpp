@@ -339,20 +339,36 @@ void Map::DeleteFromWorld(Player* pl)
 }
 
 template<class T>
-void Map::AddNotifier(T* , Cell const& , CellPair const& )
+void Map::AddNotifier(T* obj, bool /*optimized*/)
 {
+    obj->ResetAllNotifies();
+    obj->UpdateObjectVisibility();
 }
 
 template<>
-void Map::AddNotifier(Player* obj, Cell const& cell, CellPair const& cellpair)
+void Map::AddNotifier(Player* obj, bool optimized)
 {
-    obj->AddToNotify(NOTIFY_AI_RELOCATION);
+    if (optimized)
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_PLAYER_VISIBILITY | NOTIFY_AI_RELOCATION);
+    else
+    {
+        obj->ResetAllNotifies();
+        obj->UpdateVisibilityForPlayer();
+        obj->AddToNotify(NOTIFY_AI_RELOCATION);
+    }
 }
 
 template<>
-void Map::AddNotifier(Creature* obj, Cell const& cell, CellPair const& cellpair)
+void Map::AddNotifier(Creature* obj, bool optimized)
 {
-    obj->AddToNotify(NOTIFY_AI_RELOCATION);
+    if (optimized)
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+    else
+    {
+        obj->ResetAllNotifies();
+        obj->UpdateObjectVisibility();
+        obj->AddToNotify(NOTIFY_AI_RELOCATION);
+    }
 }
 
 void
@@ -448,15 +464,12 @@ bool Map::Add(Player *player)
     CellPair p = MaNGOS::ComputeCellPair(player->GetPositionX(), player->GetPositionY());
     Cell cell(p);
     EnsureGridLoadedAtEnter(cell, player);
-    player->ResetAllNotifies();
     player->AddToWorld();
 
     SendInitSelf(player);
     SendInitTransports(player);
 
-    player->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_PLAYER_VISIBILITY);
-
-    AddNotifier(player,cell,p);
+    AddNotifier(player, true);
     return true;
 }
 
@@ -485,7 +498,6 @@ Map::Add(T *obj)
     assert( grid != NULL );
 
     AddToGrid(obj,grid,cell);
-    obj->ResetAllNotifies();
     obj->AddToWorld();
 
     if(obj->isActiveObject())
@@ -493,9 +505,7 @@ Map::Add(T *obj)
 
     DEBUG_LOG("Object %u enters grid[%u,%u]", GUID_LOPART(obj->GetGUID()), cell.GridX(), cell.GridY());
 
-    obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED);
-
-    AddNotifier(obj,cell,p);
+    AddNotifier(obj, true);
 }
 
 void Map::MessageBroadcast(Player *player, WorldPacket *msg, bool to_self)
@@ -810,7 +820,7 @@ void Map::ProcessObjectsVisibility()
         cell.data.Part.reserved = ALL_DISTRICT;
         //cell.SetNoCreate();
 
-        MaNGOS::VisibleNotifier notifier(*player, *viewPoint);
+        MaNGOS::VisibleNotifier notifier(*player, *viewPoint, player->isNeedNotify(NOTIFY_VISIBILITY_CHANGED));
 
         TypeContainerVisitor<MaNGOS::VisibleNotifier, WorldTypeMapContainer > world_notifier(notifier);
         TypeContainerVisitor<MaNGOS::VisibleNotifier, GridTypeMapContainer  > grid_notifier(notifier);
@@ -913,7 +923,6 @@ void Map::Remove(Player *player, bool remove)
         player->CleanupsBeforeDelete();
     else
     {
-        player->ResetAllNotifies();
         player->RemoveFromWorld();
     }
 
@@ -952,8 +961,8 @@ void Map::Remove(Player *player, bool remove)
     RemoveFromGrid(player,grid,cell);
 
     SendRemoveTransports(player);
-    UpdatePlayerVisibility(player, player, cell,p);
-    UpdateObjectsVisibilityFor(player, player,cell,p);
+
+    AddNotifier(player, false);
 
     player->ResetMap();
     if( remove )
@@ -1023,9 +1032,9 @@ Map::Remove(T *obj, bool remove)
     else
         obj->RemoveFromWorld();
 
-    RemoveFromGrid(obj,grid,cell);
+    AddNotifier(obj, false);
 
-    UpdateObjectVisibility(obj,cell,p);
+    RemoveFromGrid(obj,grid,cell);
 
     obj->ResetMap();
     if( remove )
@@ -1068,7 +1077,7 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
             EnsureGridLoadedAtEnter(new_cell, player);
     }
 
-    player->AddToNotify(NOTIFY_PLAYER_VISIBILITY | NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+    AddNotifier(player, true);
 
     NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
     if( !same_cell && newGrid->GetGridState()!= GRID_STATE_ACTIVE )
@@ -1101,7 +1110,7 @@ Map::CreatureRelocation(Creature *creature, float x, float y, float z, float ang
     else
     {
         creature->Relocate(x, y, z, ang);
-        creature->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+        AddNotifier(creature, true);
     }
     assert(CheckGridIntegrity(creature,true));
 }
@@ -1133,7 +1142,7 @@ void Map::MoveAllCreaturesInMoveList()
         {
             // update pos
             c->Relocate(cm.x, cm.y, cm.z, cm.ang);
-            c->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+            AddNotifier(c, true);
         }
         else
         {
@@ -1245,7 +1254,7 @@ bool Map::CreatureRespawnRelocation(Creature *c)
     {
         c->Relocate(resp_x, resp_y, resp_z, resp_o);
         c->GetMotionMaster()->Initialize();                 // prevent possible problems with default move generators
-        c->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+        AddNotifier(c, true);
         return true;
     }
     else

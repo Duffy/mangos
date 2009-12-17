@@ -33,7 +33,7 @@ VisibleChangesNotifier::Visit(PlayerMapType &m)
     for(PlayerMapType::iterator iter=m.begin(); iter != m.end(); ++iter)
     {
         Player* player = iter->getSource();
-        if(player == &i_object/* || iter->getSource()->isNeedNotify(NOTIFY_VISIBILITY_ACTIVE)*/)
+        if(player == &i_object)
             continue;
 
         player->UpdateVisibilityOf(player->GetViewPoint(),&i_object);

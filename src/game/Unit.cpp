@@ -10318,17 +10318,10 @@ void Unit::SetVisibility(UnitVisibility x)
 
     if(IsInWorld())
     {
-        Map *m = GetMap();
-        CellPair p(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
-        Cell cell(p);
-
         if(GetTypeId() == TYPEID_PLAYER)
-        {   //changed current object visibility, so viewPoint == this
-            m->UpdatePlayerVisibility((Player*)this, this, cell, p);
-            m->UpdateObjectsVisibilityFor((Player*)this, this, cell, p);
-        }
+            ((Player*)this)->UpdateVisibilityForPlayer();
         else
-            m->UpdateObjectVisibility(this, cell, p);
+            UpdateObjectVisibility();
 
         AddToNotify(NOTIFY_AI_RELOCATION);
     }

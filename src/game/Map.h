@@ -561,7 +561,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
             void AddToGrid(T*, NGridType *, Cell const&);
 
         template<class T>
-            void AddNotifier(T*, Cell const&, CellPair const&);
+            void AddNotifier(T*, bool);
 
         template<class T>
             void RemoveFromGrid(T*, NGridType *, Cell const&);

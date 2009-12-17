@@ -47,11 +47,9 @@ namespace MaNGOS
 
         explicit VisibleNotifier(Player &player, WorldObject const&viewPoint, bool forced) :
             i_player(player), i_viewPoint(viewPoint), vis_guids(player.m_clientGUIDs), force(forced) {}
-        explicit VisibleNotifier(Player &player, WorldObject const&viewPoint) :
-            i_player(player), i_viewPoint(viewPoint), vis_guids(player.m_clientGUIDs),
-            force(player.isNeedNotify(NOTIFY_VISIBILITY_CHANGED)) {}
         template<class T> void Visit(GridRefManager<T> &m);
         void Visit(PlayerMapType &m) {}
+        void Visit(CreatureMapType &m);
         void SendToSelf(void);
     };
 
@@ -210,10 +208,10 @@ namespace MaNGOS
     {
         uint16 reset_mask;
         ResetNotifier(uint16 notifies) : reset_mask(notifies) {}
-        template<class T> void Visit(GridRefManager<T> &m) { resetNotify(m);}
+        template<class T> void Visit(GridRefManager<T> &m) {}
         template<class T> void resetNotify(GridRefManager<T> &);
-        //void Visit(CreatureMapType &m) { resetNotify<Creature>(m);}
-        //void Visit(PlayerMapType &m) { resetNotify<Player>(m);}
+        void Visit(CreatureMapType &m) { resetNotify<Creature>(m);}
+        void Visit(PlayerMapType &m) { resetNotify<Player>(m);}
     };
 
     struct MANGOS_DLL_DECL DynamicObjectUpdater
