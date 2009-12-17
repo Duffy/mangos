@@ -727,6 +727,9 @@ void Spell::prepareDataForTriggerSystem()
                 // Clearcasting trigger need do it
                 else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000200000000) && m_spellInfo->SpellFamilyFlags2 & 0x8)
                     m_canTrigger = true;
+                // Replenish Mana, item spell with triggered cases (Mana Agate, etc mana gems)
+                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000010000000000))
+                    m_canTrigger = true;
                 break;
             case SPELLFAMILY_WARLOCK: // For Hellfire Effect / Rain of Fire / Seed of Corruption triggers need do it
                 if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000800000000060))
@@ -2558,11 +2561,10 @@ void Spell::cancel()
                 {
                     Unit* unit = m_caster->GetGUID()==(*ihit).targetGUID ? m_caster : ObjectAccessor::GetUnit(*m_caster, ihit->targetGUID);
                     if( unit && unit->isAlive() )
-                        unit->RemoveAurasDueToSpell(m_spellInfo->Id);
+                        unit->RemoveAurasByCasterSpell(m_spellInfo->Id,m_caster->GetGUID());
                 }
             }
 
-            m_caster->RemoveAurasDueToSpell(m_spellInfo->Id);
             SendChannelUpdate(0);
             SendInterrupted(0);
             SendCastResult(SPELL_FAILED_INTERRUPTED);
@@ -2688,8 +2690,6 @@ void Spell::cast(bool skipCheck)
             }
             else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x200000000000))
                 AddPrecastSpell(61987);                     // Avenging Wrath Marker
-            else if (m_spellInfo->Id == 19746 && m_caster->HasAura(31821))
-                AddTriggeredSpell(64364);                   // Aura Mastery
             break;
         }
         case SPELLFAMILY_SHAMAN:
@@ -3603,6 +3603,13 @@ void Spell::SendChannelUpdate(uint32 time)
 {
     if(time == 0)
     {
+        m_caster->RemoveAurasByCasterSpell(m_spellInfo->Id,m_caster->GetGUID());
+
+        if(uint64 target_guid = m_caster->GetChannelObjectGUID())
+            if(target_guid != m_caster->GetGUID() && IS_UNIT_GUID(target_guid))
+                if(Unit* target = ObjectAccessor::GetUnit(*m_caster, target_guid))
+                    target->RemoveAurasByCasterSpell(m_spellInfo->Id,m_caster->GetGUID());
+
         m_caster->SetChannelObjectGUID(0);
         m_caster->SetUInt32Value(UNIT_CHANNEL_SPELL, 0);
     }
@@ -4475,7 +4482,7 @@ SpellCastResult Spell::CheckCast(bool strict)
                         return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
                     Pet* target = m_caster->GetMap()->GetPet(((Player*)m_caster)->GetSelection());
 
-                    // alive 
+                    // alive
                     if (!target || target->isDead())
                         return SPELL_FAILED_BAD_IMPLICIT_TARGETS;
                     // undead
@@ -5433,11 +5440,11 @@ SpellCastResult Spell::CheckItems()
     {
         uint32 itemid = m_CastItem->GetEntry();
         if( !p_caster->HasItemCount(itemid, 1) )
-            return SPELL_FAILED_ITEM_NOT_READY;
+            return SPELL_FAILED_ITEM_NOT_FOUND;
 
         ItemPrototype const *proto = m_CastItem->GetProto();
         if(!proto)
-            return SPELL_FAILED_ITEM_NOT_READY;
+            return SPELL_FAILED_ITEM_NOT_FOUND;
 
         if(proto->Flags & ITEM_FLAGS_ENCHANT_SCROLL) isScrollItem = true;
 
@@ -5561,7 +5568,7 @@ SpellCastResult Spell::CheckItems()
             {
                 ItemPrototype const *proto = m_CastItem->GetProto();
                 if(!proto)
-                    return SPELL_FAILED_ITEM_NOT_READY;
+                    return SPELL_FAILED_REAGENTS;
                 for(int s = 0; s < MAX_ITEM_PROTO_SPELLS; ++s)
                 {
                     // CastItem will be used up and does not count as reagent
@@ -5574,7 +5581,7 @@ SpellCastResult Spell::CheckItems()
                 }
             }
             if( !p_caster->HasItemCount(itemid, itemcount) )
-                return SPELL_FAILED_ITEM_NOT_READY;         //0x54
+                return SPELL_FAILED_REAGENTS;
         }
     }
 

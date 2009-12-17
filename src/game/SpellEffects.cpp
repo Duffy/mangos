@@ -564,15 +564,6 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 {
                     damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.08f);
                 }
-                //Improved Insect Swarm
-                else if((m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000000001)) && m_spellInfo->SpellIconID==263)
-                {
-                    Aura *ImprovedAura =  m_caster->HasAura(57849) ? m_caster->GetAura(57849,0) : m_caster->HasAura(57850) ?
-                    m_caster->GetAura(57850,0) : m_caster->HasAura(57851) ? m_caster->GetAura(57851,0) : NULL;
-                    //If the target have a Insect Swarm aura and the caster have the improved aura then we apply the % dmg to Wrath.
-                    if(ImprovedAura && unitTarget->GetAura(SPELL_AURA_PERIODIC_DAMAGE,SPELLFAMILY_DRUID,UI64LIT(0x0000000000200000)))
-                        damage = int32(damage*(100.0f+ImprovedAura->GetModifier()->m_amount)/100.0f);
-                }
                 break;
             }
             case SPELLFAMILY_ROGUE:
@@ -2143,6 +2134,18 @@ void Spell::EffectDummy(uint32 i)
                 }
 
                 int32 bp = count * m_caster->GetMaxHealth() * m_spellInfo->DmgMultiplier[0] / 100;
+
+                // Improved Death Strike
+                Unit::AuraList const& auraMod = m_caster->GetAurasByType(SPELL_AURA_ADD_FLAT_MODIFIER);
+                for(Unit::AuraList::const_iterator iter = auraMod.begin(); iter != auraMod.end(); ++iter)
+                {
+                    if ((*iter)->GetSpellProto()->SpellIconID == 2751 && (*iter)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DEATHKNIGHT)
+                    {
+                        bp += (*iter)->GetSpellProto()->CalculateSimpleValue(2) * bp / 100;
+                        break;
+                    }
+                }
+
                 m_caster->CastCustomSpell(m_caster, 45470, &bp, NULL, NULL, true);
                 return;
             }
@@ -3189,6 +3192,7 @@ void Spell::EffectEnergize(uint32 i)
             break;
         case 31930:                                         // Judgements of the Wise
         case 63375:                                         // Improved Stormstrike
+        case 68082:                                         // Glyph of Seal of Command
             damage = damage * unitTarget->GetCreateMana() / 100;
             break;
         default:
@@ -3587,16 +3591,15 @@ void Spell::EffectSummonType(uint32 i)
         {
             switch(summon_prop->Type)
             {
-                case SUMMON_PROP_TYPE_SIEGE_VEH:
-                case SUMMON_PROP_TYPE_DRAKE_VEH:
+                case SUMMON_PROP_TYPE_OTHER:
                 {
-                    // TODO
-                    // EffectSummonVehicle(i);
-                    break;
-                }
-                case SUMMON_PROP_TYPE_TOTEM:
-                {
-                    EffectSummonTotem(i, summon_prop->Slot);
+                    // those are classical totems - effectbasepoints is their hp and not summon ammount!
+                    //SUMMON_TYPE_TOTEM = 121: 23035, battlestands
+                    //SUMMON_TYPE_TOTEM2 = 647: 52893, Anti-Magic Zone (npc used)
+                    if(prop_id == 121 || prop_id == 647)
+                        EffectSummonTotem(i);
+                    else
+                        EffectSummonWild(i, summon_prop->FactionId);
                     break;
                 }
                 case SUMMON_PROP_TYPE_SUMMON:
@@ -3614,24 +3617,22 @@ void Spell::EffectSummonType(uint32 i)
                         EffectSummonGuardian(i, summon_prop->FactionId);
                     break;
                 }
+                case SUMMON_PROP_TYPE_TOTEM:
+                    EffectSummonTotem(i, summon_prop->Slot);
+                    break;
                 case SUMMON_PROP_TYPE_CRITTER:
-                {
                     EffectSummonCritter(i, summon_prop->FactionId);
                     break;
-                }
-                case SUMMON_PROP_TYPE_OTHER:
                 case SUMMON_PROP_TYPE_PHASING:
                 case SUMMON_PROP_TYPE_LIGHTWELL:
-                {
-                    // those are classical totems - effectbasepoints is their hp and not summon ammount!
-                    //SUMMON_TYPE_TOTEM = 121: 23035, battlestands
-                    //SUMMON_TYPE_TOTEM2 = 647: 52893, Anti-Magic Zone (npc used)
-                    if(prop_id == 121 || prop_id == 647)
-                        EffectSummonTotem(i);
-                    else
-                        EffectSummonWild(i, summon_prop->FactionId);
+                case SUMMON_PROP_TYPE_REPAIR_BOT:
+                    EffectSummonWild(i, summon_prop->FactionId);
                     break;
-                }
+                case SUMMON_PROP_TYPE_SIEGE_VEH:
+                case SUMMON_PROP_TYPE_DRAKE_VEH:
+                    // TODO
+                    // EffectSummonVehicle(i);
+                    break;
                 default:
                     sLog.outError("EffectSummonType: Unhandled summon type %u", summon_prop->Type);
                 break;

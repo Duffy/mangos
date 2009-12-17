@@ -1714,14 +1714,6 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if (IsSealSpell(spellInfo_1) && IsSealSpell(spellInfo_2))
                     return true;
 
-                // Concentration aura and Aura Mastery.
-                if (spellInfo_2->Id == 19746 && spellInfo_1->Id == 64364)
-                    return false;
-
-                // Other auras remove Aura Mastery immunity effect.
-                if (spellInfo_1->SpellFamilyFlags2 == UI64LIT(0x20) && spellInfo_2->Id == 64364)
-                    return true;
-
                 // Swift Retribution / Improved Devotion Aura (talents) and Paladin Auras
                 if ((spellInfo_1->SpellFamilyFlags2 & 0x00000020) && (spellInfo_2->SpellIconID == 291 || spellInfo_2->SpellIconID == 3028) ||
                     (spellInfo_2->SpellFamilyFlags2 & 0x00000020) && (spellInfo_1->SpellIconID == 291 || spellInfo_1->SpellIconID == 3028))
@@ -1792,6 +1784,11 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if (spellInfo_1->SpellFamilyFlags == UI64LIT(0x1000000000) && spellInfo_2->SpellFamilyFlags == UI64LIT(0x1000000000))
                     return false;
 
+                // Improved Blood Presence and Blood Presence
+                if( (spellInfo_1->Id == 48266 && spellInfo_2->Id == 63611) ||
+                    ( spellInfo_2->Id == 48266 && spellInfo_1->Id == 63611) )
+                    return true;
+
                 // Ebon Plague must replace Crypt Fever.
                 if( (spellInfo_1->Attributes & 0x40000) && (spellInfo_1->AttributesEx & 0x8) &&
                     (spellInfo_2->Attributes & 0x10) && (spellInfo_2->AttributesEx3 & 0x40000000) )
@@ -1807,11 +1804,6 @@ bool SpellMgr::IsNoStackSpellDueToSpell(uint32 spellId_1, uint32 spellId_2) cons
                 if( (spellInfo_1->Attributes & 0x40000) && (spellInfo_1->AttributesEx & 0x8) &&
                     (spellInfo_2->Attributes & 0x40000) && (spellInfo_2->AttributesEx & 0x8) &&
                     spellInfo_1->Id > spellInfo_2->Id)
-                    return true;
-
-                // Improved Blood Presence and Blood Presence
-                if( (spellInfo_1->Id == 48266 && spellInfo_2->Id == 63611) ||
-                    ( spellInfo_2->Id == 48266 && spellInfo_1->Id == 63611) )
                     return true;
             }
             break;
