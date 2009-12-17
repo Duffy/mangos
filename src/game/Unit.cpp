@@ -7245,6 +7245,13 @@ bool Unit::HandleProcTriggerSpell(Unit *pVictim, uint32 damage, Aura* triggeredB
                 target = pVictim;
                 trigger_spell_id = 26470;
             }
+            // Blessing of Ancient Kings (Val'anyr, Hammer of Ancient Kings)
+            else if(auraSpellInfo->Id == 64411)
+            {
+                basepoints[0] = damage * 15 / 100;
+                target = pVictim;
+                trigger_spell_id = 64413;
+            }
             break;
         case SPELLFAMILY_WARRIOR:
             if (auraSpellInfo->Id == 50421)             // Scent of Blood
