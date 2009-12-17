@@ -9485,6 +9485,19 @@ bool Unit::isSpellCrit(Unit *pVictim, SpellEntry const *spellProto, SpellSchoolM
                                 }
                             }
                         }
+                        // Improved Faerie Fire
+                        else if(pVictim->HasAura(770) || pVictim->HasAura(16857))
+                        {
+                            AuraList const& ImprovedAura = GetAurasByType(SPELL_AURA_DUMMY);
+                            for(AuraList::const_iterator i = ImprovedAura.begin(); i != ImprovedAura.end(); ++i)
+                            {
+                                if((*i)->GetEffIndex() == 0 && (*i)->GetSpellProto()->SpellIconID == 109 && (*i)->GetSpellProto()->SpellFamilyName == SPELLFAMILY_DRUID)
+                                {
+                                    crit_chance += (*i)->GetModifier()->m_amount;
+                                    break;
+                                }
+                            }
+                        }
                         break;
                     case SPELLFAMILY_PALADIN:
                         // Sacred Shield
