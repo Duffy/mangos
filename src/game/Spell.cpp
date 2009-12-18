@@ -2702,12 +2702,6 @@ void Spell::cast(bool skipCheck)
                 AddPrecastSpell(57723);                     // Exhaustion
             break;
         }
-        case SPELLFAMILY_DRUID:
-        {
-            if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020)) // Berserk
-                AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
-            break;
-        }
         default:
             break;
     }
