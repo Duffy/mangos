@@ -108,7 +108,7 @@ MaNGOS::DelayedUnitRelocation::Visit(PlayerMapType &m)
 
         CellPair pair(MaNGOS::ComputeCellPair(viewPoint->GetPositionX(), viewPoint->GetPositionY()));
         Cell cell(pair);
-        //cell.SetNoCreate(); need load cells around viewPoint
+        //cell.SetNoCreate(); need load cells around viewPoint or player
         CellLock<ReadGuard> cell_lock(cell, pair);
 
         PlayerRelocationNotifier relocate(*unit, *viewPoint, true);

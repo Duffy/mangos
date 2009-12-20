@@ -472,10 +472,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
 
         //these functions used to process player/mob aggro reactions and
         //visibility calculations. Highly optimized for massive calculations
-        void ProcessObjectsVisibility();
-        void ProcesssPlayersVisibility();
-        void ProcessRelocationNotifies();
-        void ResetNotifies(uint16 notify_mask);
+        void ProcessRelocationNotifies(uint32 diff);
 
         void SetTimer(uint32 t) { i_gridExpiry = t < MIN_GRID_DELAY ? MIN_GRID_DELAY : t; }
 
@@ -526,9 +523,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         uint32 m_unloadTimer;
         float m_VisibleDistance;
 
-        PeriodicTimer m_ObjectVisibilityNotifyTimer;
-        PeriodicTimer m_PlayerVisibilityNotifyTimer;
-        PeriodicTimer m_RelocationNotifyTimer;
+        int32 m_VisibilityNotifyPeriod;
 
         MapRefManager m_mapRefManager;
         MapRefManager::iterator m_mapRefIter;

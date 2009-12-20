@@ -52,7 +52,7 @@ VisibleNotifier::SendToSelf()
 
                 i_player.UpdateVisibilityOf(&i_viewPoint,(*itr), i_data, i_visibleNow);
 
-                if(!(*itr)->isNeedNotify(NOTIFY_PLAYER_VISIBILITY))
+                //if(!(*itr)->isNeedNotify(NOTIFY_PLAYER_VISIBILITY))
                     (*itr)->UpdateVisibilityOf((*itr),&i_player);
             }
         }
@@ -61,9 +61,15 @@ VisibleNotifier::SendToSelf()
     {
         i_player.m_clientGUIDs.erase(*it);
         i_data.AddOutOfRangeGUID(*it);
+
+        if(!IS_PLAYER_GUID(*it))
+            continue;
+
+        if(Player *plr = ObjectAccessor::FindPlayer(*it))
+            plr->UpdateVisibilityOf(plr->GetViewPoint(), &i_player);
     }
 
-    if(!i_data.HasData())
+    if(!i_data.HasData())// if Update data empty, i_visibleNow set empty too
         return;
 
     WorldPacket packet;
@@ -102,7 +108,7 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
 void PlayerRelocationNotifier::Visit(CreatureMapType &m)
 {
     bool relocated_for_ai = i_player.isAlive() && !i_player.isInFlight() && 
-        i_player.isNeedNotify(NOTIFY_VISIBILITY_CHANGED);
+        i_player.isNeedNotify(NOTIFY_VISIBILITY_CHANGED) && (&i_player == &i_viewPoint);
 
     for(CreatureMapType::iterator iter=m.begin(); iter != m.end(); ++iter)
     {

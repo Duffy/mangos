@@ -27,7 +27,6 @@
 #include "GridStates.h"
 
 class Transport;
-#define DEFAULT_VISIBILITY_NOTIFY_PERIOD      600
 
 class MANGOS_DLL_DECL MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockable<MapManager, ACE_Thread_Mutex> >
 {

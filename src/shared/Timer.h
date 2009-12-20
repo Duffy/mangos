@@ -112,6 +112,14 @@ struct PeriodicTimer
         i_expirity=start_time, i_period=period;
     }
 
+    // Tracker interface
+    PeriodicTimer(int32 start_time) :
+        i_expirity(start_time), i_period(start_time) {}
+
+    void TUpdate(uint32 diff) { i_expirity -= diff; }
+    bool TPassed() const { return i_expirity <= 0; }
+    void TReset(uint32 diff, uint32 period)  { i_expirity += period > diff ? period : diff; }
+
     int32 i_period;
     int32 i_expirity;
 };
