@@ -66,7 +66,8 @@ VisibleNotifier::SendToSelf()
             continue;
 
         if(Player *plr = ObjectAccessor::FindPlayer(*it))
-            plr->UpdateVisibilityOf(plr->GetViewPoint(), &i_player);
+            if(plr->IsInWorld() && !plr->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+                plr->UpdateVisibilityOf(plr->GetViewPoint(), &i_player);
     }
 
     if(!i_data.HasData())// if Update data empty, i_visibleNow set empty too
@@ -116,8 +117,7 @@ void PlayerRelocationNotifier::Visit(CreatureMapType &m)
 
         vis_guids.erase(c->GetGUID());
 
-        if (player_relocated)
-            i_player.UpdateVisibilityOf(&i_viewPoint,c,i_data,i_visibleNow);
+        i_player.UpdateVisibilityOf(&i_viewPoint,c,i_data,i_visibleNow);
 
         if (relocated_for_ai && c->isAlive() && !c->NotifyExecuted(NOTIFY_VISIBILITY_CHANGED))
             PlayerCreatureRelocationWorker(&i_player, c);
@@ -134,8 +134,7 @@ void PlayerRelocationNotifier::Visit(PlayerMapType &m)
 
         vis_guids.erase(plr->GetGUID());
 
-        //if (player_relocated) == true every time
-            i_player.UpdateVisibilityOf(&i_viewPoint,plr,i_data,i_visibleNow);
+        i_player.UpdateVisibilityOf(&i_viewPoint,plr,i_data,i_visibleNow);
 
         if (plr->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
@@ -152,8 +151,9 @@ void CreatureRelocationNotifier::Visit(PlayerMapType &m)
     {
         Player * pl = iter->getSource();
 
-        //c->isNeedNotify(NOTIFY_VISIBILITY_CHANGED)) == true because its main condition to process this notifier
-        pl->UpdateVisibilityOf(pl->GetViewPoint(), &i_creature);
+        // update visibility for players that not relocated since last reset
+        if(!pl->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+            pl->UpdateVisibilityOf(pl->GetViewPoint(), &i_creature);
 
         if(relocated_for_ai && pl->isAlive() && !pl->isInFlight() && !pl->NotifyExecuted(NOTIFY_VISIBILITY_CHANGED))
             PlayerCreatureRelocationWorker(pl, &i_creature);
