@@ -21188,23 +21188,8 @@ void Player::SetFarSightGUID( uint64 guid )
 
 void Player::UpdateVisibilityForPlayer()
 {
-    WorldObject const* viewPoint = GetViewPoint();
-    Map* m = GetMap();
-
-    CellPair p(MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY()));
-    Cell cell(p);
-
-    m->UpdatePlayerVisibility(this, viewPoint, cell, p);
-
-    if (this != viewPoint)
-    {
-        CellPair pView(MaNGOS::ComputeCellPair(viewPoint->GetPositionX(), viewPoint->GetPositionY()));
-        Cell cellView(pView);
-
-        m->UpdateObjectsVisibilityFor(this, viewPoint, cellView, pView);
-    }
-    else
-        m->UpdateObjectsVisibilityFor(this, viewPoint, cell, p);
+    if (IsInWorld())
+        GetMap()->AddNotifier(this, false);
 }
 
 void Player::SendDuelCountdown(uint32 counter)

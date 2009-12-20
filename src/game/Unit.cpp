@@ -10319,11 +10319,11 @@ void Unit::SetVisibility(UnitVisibility x)
     if(IsInWorld())
     {
         if(GetTypeId() == TYPEID_PLAYER)
-            ((Player*)this)->UpdateVisibilityForPlayer();
+            GetMap()->AddNotifier((Player*)this, false);
         else
-            UpdateObjectVisibility();
+            GetMap()->AddNotifier((Creature*)this, false);
 
-        AddToNotify(NOTIFY_AI_RELOCATION);
+        AddToNotify(NOTIFY_VISIBILITY_CHANGED);
     }
 }
 

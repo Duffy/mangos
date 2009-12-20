@@ -35,19 +35,7 @@ MaNGOS::VisibleNotifier::Visit(GridRefManager<T> &m)
     {
         vis_guids.erase(iter->getSource()->GetGUID());
 
-        if(force)
-            i_player.UpdateVisibilityOf(&i_viewPoint,iter->getSource(),i_data,i_visibleNow);
-    }
-}
-
-inline void
-MaNGOS::VisibleNotifier::Visit(CreatureMapType &m)
-{
-    for(CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
-    {
-        vis_guids.erase(iter->getSource()->GetGUID());
-
-        if (force || iter->getSource()->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+       // if(player_relocated) == true evry time
             i_player.UpdateVisibilityOf(&i_viewPoint,iter->getSource(),i_data,i_visibleNow);
     }
 }
@@ -66,17 +54,72 @@ MaNGOS::DelayedUnitRelocation::Notify(GridRefManager<T> &m)
     for(typename GridRefManager<T>::iterator iter = m.begin(); iter != m.end(); ++iter)
     {
         T * unit = iter->getSource();
-        if(!unit->isAlive() || !unit->isNeedNotify(NOTIFY_AI_RELOCATION))
+        if(/*!unit->isAlive() || */!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
             continue;
 
         VISITOR relocate(*unit);
+
         TypeContainerVisitor<VISITOR, WorldTypeMapContainer > c2world_relocation(relocate);
         TypeContainerVisitor<VISITOR, GridTypeMapContainer >  c2grid_relocation(relocate);
 
         i_lock->Visit(i_lock, c2world_relocation, i_map, *unit, i_radius);
         i_lock->Visit(i_lock, c2grid_relocation, i_map, *unit, i_radius);
 
-        unit->SetNotified(NOTIFY_AI_RELOCATION);
+        unit->SetNotified(NOTIFY_VISIBILITY_CHANGED);
+    }
+}
+
+inline void
+MaNGOS::DelayedUnitRelocation::Visit(CreatureMapType &m)
+{
+    for(CreatureMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
+    {
+        Creature * unit = iter->getSource();
+        if(!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+            continue;
+
+        CreatureRelocationNotifier relocate(*unit);
+
+        TypeContainerVisitor<CreatureRelocationNotifier, WorldTypeMapContainer > c2world_relocation(relocate);
+        TypeContainerVisitor<CreatureRelocationNotifier, GridTypeMapContainer >  c2grid_relocation(relocate);
+
+        i_lock->Visit(i_lock, c2world_relocation, i_map, *unit, i_radius);
+        i_lock->Visit(i_lock, c2grid_relocation, i_map, *unit, i_radius);
+
+        unit->SetNotified(NOTIFY_VISIBILITY_CHANGED);
+    }
+}
+// если плеер смотрит на мир глазами другого юнита - сам плеер(тело) стоит, значит и не перемещается и релокейты
+// для кричеров вокруг не зовутся
+
+inline void
+MaNGOS::DelayedUnitRelocation::Visit(PlayerMapType &m)
+{
+    for(PlayerMapType::iterator iter = m.begin(); iter != m.end(); ++iter)
+    {
+        Player * unit = iter->getSource();
+        if(!unit->isNeedNotify(NOTIFY_VISIBILITY_CHANGED))
+            continue;
+
+        WorldObject const *viewPoint = unit->GetViewPoint();
+
+        if(!viewPoint->IsPositionValid()/* || !unit->IsPositionValid()*/)
+            continue;
+
+        CellPair pair(MaNGOS::ComputeCellPair(viewPoint->GetPositionX(), viewPoint->GetPositionY()));
+        Cell cell(pair);
+        //cell.SetNoCreate(); need load cells around viewPoint
+        CellLock<ReadGuard> cell_lock(cell, pair);
+
+        PlayerRelocationNotifier relocate(*unit, *viewPoint, true);
+        TypeContainerVisitor<PlayerRelocationNotifier, WorldTypeMapContainer > c2world_relocation(relocate);
+        TypeContainerVisitor<PlayerRelocationNotifier, GridTypeMapContainer >  c2grid_relocation(relocate);
+
+        i_lock->Visit(cell_lock, c2world_relocation, i_map, *viewPoint, i_radius);
+        i_lock->Visit(cell_lock, c2grid_relocation, i_map, *viewPoint, i_radius);
+
+        relocate.SendToSelf();
+        unit->SetNotified(NOTIFY_VISIBILITY_CHANGED);
     }
 }
 

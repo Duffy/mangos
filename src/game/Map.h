@@ -402,6 +402,9 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
 
         virtual bool RemoveBones(uint64 guid, float x, float y);
 
+        template<class T>
+            void AddNotifier(T*, bool /*optimized*/);
+
         void UpdateObjectVisibility(WorldObject* obj, Cell cell, CellPair cellpair);
         void UpdatePlayerVisibility(Player* player, WorldObject const* viewPoint, Cell cell, CellPair cellpair);
         void UpdateObjectsVisibilityFor(Player* player, WorldObject const* viewPointCell, Cell cell, CellPair cellpair);
@@ -559,9 +562,6 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         // Type specific code for add/remove to/from grid
         template<class T>
             void AddToGrid(T*, NGridType *, Cell const&);
-
-        template<class T>
-            void AddNotifier(T*, bool);
 
         template<class T>
             void RemoveFromGrid(T*, NGridType *, Cell const&);

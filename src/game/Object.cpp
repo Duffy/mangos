@@ -1932,10 +1932,7 @@ void WorldObject::PlayDirectSound( uint32 sound_id, Player* target /*= NULL*/ )
 
 void WorldObject::UpdateObjectVisibility()
 {
-    CellPair p = MaNGOS::ComputeCellPair(GetPositionX(), GetPositionY());
-    Cell cell(p);
-
-    GetMap()->UpdateObjectVisibility(this, cell, p);
+    GetMap()->AddNotifier(this, false);
 }
 
 void WorldObject::AddToClientUpdateList()

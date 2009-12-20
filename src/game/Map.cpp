@@ -341,20 +341,40 @@ void Map::DeleteFromWorld(Player* pl)
 template<class T>
 void Map::AddNotifier(T* obj, bool /*optimized*/)
 {
-    obj->ResetAllNotifies();
-    obj->UpdateObjectVisibility();
+    //obj->ResetAllNotifies();
+    CellPair p( MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY()) );
+    Cell cell(p);
+    UpdateObjectVisibility(obj, cell, p);
 }
 
 template<>
 void Map::AddNotifier(Player* obj, bool optimized)
 {
     if (optimized)
-        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_PLAYER_VISIBILITY | NOTIFY_AI_RELOCATION);
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED);
     else
     {
         obj->ResetAllNotifies();
-        obj->UpdateVisibilityForPlayer();
-        obj->AddToNotify(NOTIFY_AI_RELOCATION);
+        {
+            WorldObject const* viewPoint = obj->GetViewPoint();
+
+            CellPair p( MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY()) );
+            Cell cell(p);
+
+            UpdateObjectVisibility(obj, cell, p);
+
+            if(obj != viewPoint)
+            {
+                CellPair p(MaNGOS::ComputeCellPair(viewPoint->GetPositionX(), viewPoint->GetPositionY()));
+                Cell cell(p);
+
+                UpdateObjectsVisibilityFor(obj, viewPoint, cell, p);
+            }
+            else
+                UpdateObjectsVisibilityFor(obj, viewPoint, cell, p);
+        }
+
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED);
     }
 }
 
@@ -362,12 +382,16 @@ template<>
 void Map::AddNotifier(Creature* obj, bool optimized)
 {
     if (optimized)
-        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION);
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED);
     else
     {
         obj->ResetAllNotifies();
-        obj->UpdateObjectVisibility();
-        obj->AddToNotify(NOTIFY_AI_RELOCATION);
+
+        CellPair p( MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY()) );
+        Cell cell(p);
+        UpdateObjectVisibility(obj, cell, p);
+
+        obj->AddToNotify(NOTIFY_VISIBILITY_CHANGED);
     }
 }
 
@@ -728,27 +752,11 @@ void Map::Update(const uint32 &t_diff)
         bool hasPlayers = !m_mapRefManager.isEmpty();
         bool hasActiveObjects = !m_activeNonPlayers.empty();
 
-        // no sence update visibility if no players in map
-        if(hasPlayers)
-        {
-            if(m_PlayerVisibilityNotifyTimer.Update(t_diff))
-            {   // process player-player visibility
-                ProcesssPlayersVisibility();
-                ResetNotifies(NOTIFY_PLAYER_VISIBILITY);
-            }
-
-            if(m_ObjectVisibilityNotifyTimer.Update(t_diff))
-            {
-                ProcessObjectsVisibility();
-                ResetNotifies(NOTIFY_VISIBILITY_CHANGED);
-            }
-        }
-
         if(hasActiveObjects || hasPlayers)
             if(m_RelocationNotifyTimer.Update(t_diff))
             {
                 ProcessRelocationNotifies();
-                ResetNotifies(NOTIFY_AI_RELOCATION);
+                ResetNotifies(NOTIFY_VISIBILITY_CHANGED);
             }
     }
 
@@ -772,7 +780,7 @@ void Map::Update(const uint32 &t_diff)
 
 void Map::ProcesssPlayersVisibility()
 {
-    for(m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
+    /*for(m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
         Player* player = m_mapRefIter->getSource();
 
@@ -798,7 +806,7 @@ void Map::ProcesssPlayersVisibility()
         notifier.SendToSelf();
         player->RemoveFromNotify(NOTIFY_PLAYER_VISIBILITY);
         player->SetNotified(NOTIFY_PLAYER_VISIBILITY);
-    }
+    }*/
 }
 
 void Map::ProcessObjectsVisibility()
@@ -2198,14 +2206,14 @@ void Map::UpdateObjectVisibility( WorldObject* obj, Cell cell, CellPair cellpair
 
 void Map::UpdatePlayerVisibility( Player* player, WorldObject const*viewPoint, Cell cell, CellPair cellpair )
 {
-    cell.data.Part.reserved = ALL_DISTRICT;
+    //cell.data.Part.reserved = ALL_DISTRICT;
 
-    MaNGOS::Player2PlayerNotifier    pl_notifier(*player, *viewPoint, true);
-    TypeContainerVisitor<MaNGOS::Player2PlayerNotifier, WorldTypeMapContainer > player_notifier(pl_notifier);
+    //MaNGOS::Player2PlayerNotifier    pl_notifier(*player, *viewPoint, true);
+    //TypeContainerVisitor<MaNGOS::Player2PlayerNotifier, WorldTypeMapContainer > player_notifier(pl_notifier);
 
-    CellLock<ReadGuard> cell_lock(cell, cellpair);
-    cell_lock->Visit(cell_lock, player_notifier, *this, *viewPoint, GetVisibilityDistance());
-    pl_notifier.SendToSelf();
+    //CellLock<ReadGuard> cell_lock(cell, cellpair);
+    //cell_lock->Visit(cell_lock, player_notifier, *this, *viewPoint, GetVisibilityDistance());
+    //pl_notifier.SendToSelf();
 }
 
 void Map::UpdateObjectsVisibilityFor( Player* player, WorldObject const*viewPoint, Cell cell, CellPair cellpair )
@@ -2226,15 +2234,15 @@ void Map::UpdateObjectsVisibilityFor( Player* player, WorldObject const*viewPoin
 
 void Map::PlayerRelocationNotify( Player* player, Cell cell, CellPair cellpair )
 {
-    CellLock<ReadGuard> cell_lock(cell, cellpair);
-    MaNGOS::PlayerRelocationNotifier relocationNotifier(*player);
-    cell.data.Part.reserved = ALL_DISTRICT;
+    //CellLock<ReadGuard> cell_lock(cell, cellpair);
+    //MaNGOS::PlayerRelocationNotifier relocationNotifier(*player);
+    //cell.data.Part.reserved = ALL_DISTRICT;
 
-    TypeContainerVisitor<MaNGOS::PlayerRelocationNotifier, GridTypeMapContainer >  p2grid_relocation(relocationNotifier);
-    TypeContainerVisitor<MaNGOS::PlayerRelocationNotifier, WorldTypeMapContainer > p2world_relocation(relocationNotifier);
+    //TypeContainerVisitor<MaNGOS::PlayerRelocationNotifier, GridTypeMapContainer >  p2grid_relocation(relocationNotifier);
+    //TypeContainerVisitor<MaNGOS::PlayerRelocationNotifier, WorldTypeMapContainer > p2world_relocation(relocationNotifier);
 
-    cell_lock->Visit(cell_lock, p2grid_relocation, *this, *player, MAX_CREATURE_ATTACK_RADIUS);
-    cell_lock->Visit(cell_lock, p2world_relocation, *this, *player, MAX_CREATURE_ATTACK_RADIUS);
+    //cell_lock->Visit(cell_lock, p2grid_relocation, *this, *player, MAX_CREATURE_ATTACK_RADIUS);
+    //cell_lock->Visit(cell_lock, p2world_relocation, *this, *player, MAX_CREATURE_ATTACK_RADIUS);
 }
 
 void Map::CreatureRelocationNotify(Creature *creature, Cell cell, CellPair cellpair)
