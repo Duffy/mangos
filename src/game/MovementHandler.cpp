@@ -769,6 +769,9 @@ void WorldSession::HandleSetActiveMoverOpcode(WorldPacket &recv_data)
 
     uint64 guid;
     recv_data >> guid;
+	
+	if(!guid)
+		return;
 
     if(_player->m_mover->GetGUID() != guid)
     {
