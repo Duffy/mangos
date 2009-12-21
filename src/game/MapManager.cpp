@@ -335,6 +335,12 @@ void MapManager::InitMaxInstanceId()
     }
 }
 
+void MapManager::InitializeVisibilityNotifyTimers()
+{
+    for(MapMapType::iterator iter=i_maps.begin(); iter != i_maps.end(); ++iter)
+        (*iter).second->InitializeNotifyTimers();
+}
+
 uint32 MapManager::GetNumInstances()
 {
     Guard guard(*this);
