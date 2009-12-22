@@ -386,20 +386,12 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                 }
                 break;
             }
-
             case SPELLFAMILY_MAGE:
-            {
-                // Arcane Blast
-                if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x20000000))
-                {
-                    m_caster->CastSpell(m_caster, 36032, false);
-                }
-                else if (m_spellInfo->SchoolMask & SPELL_SCHOOL_MASK_ARCANE)
-                {
-                    m_caster->RemoveAurasDueToSpell(36032);
-                }
+                // remove Arcane Blast buffs at any non-Arcane Blast arcane damage spell.
+                // NOTE: it removed at hit instead cast because currently spell done-damage calculated at hit instead cast
+                if ((m_spellInfo->SchoolMask & SPELL_SCHOOL_MASK_ARCANE) && !(m_spellInfo->SpellFamilyFlags & UI64LIT(0x20000000)))
+                    m_caster->RemoveAurasDueToSpell(36032); // Arcane Blast buff
                 break;
-            }
             case SPELLFAMILY_WARRIOR:
             {
                 // Bloodthirst
@@ -500,6 +492,7 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                     // found Immolate or Shadowflame
                     if (aura)
                     {
+                        // DoT not have applied spell bonuses in m_amount
                         int32 damagetick = m_caster->SpellDamageBonus(unitTarget, aura->GetSpellProto(), aura->GetModifier()->m_amount, DOT);
                         damage += damagetick * 4;
 
@@ -508,10 +501,6 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                             unitTarget->RemoveAurasByCasterSpell(aura->GetId(), m_caster->GetGUID());
                         break;
                     }
-                }
-                if(m_spellInfo->Id == 60089) //Faerie Fire(Feral) DMG
-                {
-                    damage += int32(m_caster->GetTotalAttackPowerValue(BASE_ATTACK)*0.15f);
                 }
                 break;
             }
@@ -726,22 +715,6 @@ void Spell::EffectSchoolDMG(uint32 effect_idx)
                     // + 10% for each application of Holy Vengeance on the target
                     if(stacks)
                         damage += damage * stacks * 10 /100;
-                }
-                // Avenger's Shield ($m1+0.07*$SPH+0.07*$AP) - ranged sdb for future
-                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000000000004000))
-                {
-                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
-                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
-                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
-                    damage += int32(ap * 0.07f) + int32(holy * 7 / 100);
-                }
-                // Hammer of Wrath ($m1+0.15*$SPH+0.15*$AP) - ranged type sdb future fix
-                else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0000008000000000))
-                {
-                    float ap = m_caster->GetTotalAttackPowerValue(BASE_ATTACK);
-                    int32 holy = m_caster->SpellBaseDamageBonus(GetSpellSchoolMask(m_spellInfo)) +
-                                 m_caster->SpellBaseDamageBonusForVictim(GetSpellSchoolMask(m_spellInfo), unitTarget);
-                    damage += int32(ap * 0.15f) + int32(holy * 15 / 100);
                 }
                 // Hammer of the Righteous
                 else if (m_spellInfo->SpellFamilyFlags & UI64LIT(0x0004000000000000))
@@ -3191,6 +3164,7 @@ void Spell::EffectEnergize(uint32 i)
             level_multiplier = 4;
             break;
         case 31930:                                         // Judgements of the Wise
+        case 48542:                                         // Revitalize (mana restore case)
         case 63375:                                         // Improved Stormstrike
         case 68082:                                         // Glyph of Seal of Command
             damage = damage * unitTarget->GetCreateMana() / 100;
@@ -4775,14 +4749,8 @@ void Spell::EffectWeaponDmg(uint32 i)
     {
         case SPELLFAMILY_WARRIOR:
         {
-            // Whirlwind causes damage from both weapons
-            if(m_caster->GetTypeId()==TYPEID_PLAYER && (m_spellInfo->Id == 1680 || m_spellInfo->Id == 50622))
-            {
-                if(((Player*)m_caster)->GetWeaponForAttack(OFF_ATTACK, true, true))
-                    AddTriggeredSpell(44949);
-            }
             // Devastate bonus and sunder armor refresh
-            else if(m_spellInfo->SpellVisual[0] == 12295 && m_spellInfo->SpellIconID == 1508)
+            if(m_spellInfo->SpellVisual[0] == 12295 && m_spellInfo->SpellIconID == 1508)
             {
                 uint32 stack = 0;
                 // Need refresh all Sunder Armor auras from this caster
@@ -5698,19 +5666,35 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                         // Serpent Sting - Instantly deals 40% of the damage done by your Serpent Sting.
                         if ((familyFlag & UI64LIT(0x0000000000004000)) && aura->GetEffIndex() == 0)
                         {
-                            spellId = 53353; // 53353 Chimera Shot - Serpent
+                            // m_amount already include RAP bonus
                             basePoint = aura->GetModifier()->m_amount * 5 * 40 / 100;
+                            spellId = 53353;                // Chimera Shot - Serpent
                         }
                         // Viper Sting - Instantly restores mana to you equal to 60% of the total amount drained by your Viper Sting.
                         if ((familyFlag & UI64LIT(0x0000008000000000)) && aura->GetEffIndex() == 0)
                         {
-                            spellId = 53358; // 53358 Chimera Shot - Viper
-                            basePoint = aura->GetModifier()->m_amount * 4 * 60 / 100;
+                            uint32 target_max_mana = unitTarget->GetMaxPower(POWER_MANA);
+                            if (!target_max_mana)
+                                continue;
+
+                            // ignore non positive values (can be result apply spellmods to aura damage
+                            uint32 pdamage = aura->GetModifier()->m_amount > 0 ? aura->GetModifier()->m_amount : 0;
+
+                            // Special case: draining x% of mana (up to a maximum of 2*x% of the caster's maximum mana)
+                            uint32 maxmana = m_caster->GetMaxPower(POWER_MANA)  * pdamage * 2 / 100;
+
+                            pdamage = target_max_mana * pdamage / 100;
+                            if (pdamage > maxmana)
+                                pdamage = maxmana;
+
+                            pdamage *= 4;                   // total aura damage
+                            basePoint = pdamage * 60 / 100;
+                            spellId = 53358;                // Chimera Shot - Viper
                             target = m_caster;
                         }
                         // Scorpid Sting - Attempts to Disarm the target for 10 sec. This effect cannot occur more than once per 1 minute.
                         if (familyFlag & UI64LIT(0x0000000000008000))
-                            spellId = 53359; // 53359 Chimera Shot - Scorpid
+                            spellId = 53359;                // Chimera Shot - Scorpid
                         // ?? nothing say in spell desc (possibly need addition check)
                         //if ((familyFlag & UI64LIT(0x0000010000000000)) || // dot
                         //    (familyFlag & UI64LIT(0x0000100000000000)))   // stun

@@ -622,11 +622,13 @@ void Spell::FillTargetMap()
                             SetTargetMap(i, m_spellInfo->EffectImplicitTargetB[i], tmpUnitMap);
                         }
                         break;
+                    case 0:
+                        SetTargetMap(i, m_spellInfo->EffectImplicitTargetA[i], tmpUnitMap);
+                        tmpUnitMap.push_back(m_caster);
+                        break;
                     default:
-                        {
-                            SetTargetMap(i, m_spellInfo->EffectImplicitTargetA[i], tmpUnitMap);
-                            SetTargetMap(i, m_spellInfo->EffectImplicitTargetB[i], tmpUnitMap);
-                        }
+                        SetTargetMap(i, m_spellInfo->EffectImplicitTargetA[i], tmpUnitMap);
+                        SetTargetMap(i, m_spellInfo->EffectImplicitTargetB[i], tmpUnitMap);
                         break;
                 }
                 break;
@@ -1351,7 +1353,7 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
     {
         case SPELLFAMILY_DRUID:
             // Starfall
-            if (m_spellInfo->SpellFamilyFlags2 & UI64LIT(0x00000100))
+            if (m_spellInfo->SpellFamilyFlags2 & 0x00000100)
                 unMaxTargets = 2;
             break;
         default:
@@ -2666,6 +2668,16 @@ void Spell::cast(bool skipCheck)
             }
             break;
         }
+        case SPELLFAMILY_DRUID:
+        {
+            // Berserk
+            if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020))
+                AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
+            // Faerie Fire (Feral)
+            if (m_spellInfo->Id == 16857 && m_caster->m_form != FORM_CAT)
+                AddTriggeredSpell(60089);
+            break;
+        }
         case SPELLFAMILY_ROGUE:
             // Fan of Knives (main hand)
             if (m_spellInfo->Id == 51723 && m_caster->GetTypeId() == TYPEID_PLAYER &&
@@ -2700,14 +2712,6 @@ void Spell::cast(bool skipCheck)
             // Heroism
             else if (m_spellInfo->Id == 32182)
                 AddPrecastSpell(57723);                     // Exhaustion
-            break;
-        }
-        case SPELLFAMILY_DRUID:
-        {
-            if (m_spellInfo->SpellIconID == 2852 && (m_spellInfo->AttributesEx & 0x28020)) // Berserk
-                AddPrecastSpell(58923); // Hit 3 targets at once with mangle in dire bear form
-            if (m_spellInfo->Id == 16857 && (m_caster->m_form == FORM_BEAR || m_caster->m_form == FORM_DIREBEAR)) //Faerie Fire(Feral)
-                AddPrecastSpell(60089);
             break;
         }
         default:
@@ -4232,20 +4236,34 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
         }
 
-        // TODO: this check can be applied and for player to prevent cheating when IsPositiveSpell will return always correct result.
-        // check target for pet/charmed casts (not self targeted), self targeted cast used for area effects and etc
-        if(non_caster_target && m_caster->GetTypeId() == TYPEID_UNIT && m_caster->GetCharmerOrOwnerGUID())
+        if(non_caster_target)
         {
-            // check correctness positive/negative cast target (pet cast real check and cheating check)
-            if(IsPositiveSpell(m_spellInfo->Id))
+            // simple cases
+            if (IsExplicitPositiveTarget(m_spellInfo->EffectImplicitTargetA[0]))
             {
                 if(m_caster->IsHostileTo(target))
                     return SPELL_FAILED_BAD_TARGETS;
             }
-            else
+            else if (IsExplicitNegativeTarget(m_spellInfo->EffectImplicitTargetA[0]))
             {
                 if(m_caster->IsFriendlyTo(target))
                     return SPELL_FAILED_BAD_TARGETS;
+            }
+            // TODO: this check can be applied and for player to prevent cheating when IsPositiveSpell will return always correct result.
+            // check target for pet/charmed casts (not self targeted), self targeted cast used for area effects and etc
+            else if (m_caster->GetTypeId() == TYPEID_UNIT && m_caster->GetCharmerOrOwnerGUID())
+            {
+                // check correctness positive/negative cast target (pet cast real check and cheating check)
+                if(IsPositiveSpell(m_spellInfo->Id))
+                {
+                    if(m_caster->IsHostileTo(target))
+                        return SPELL_FAILED_BAD_TARGETS;
+                }
+                else
+                {
+                    if(m_caster->IsFriendlyTo(target))
+                        return SPELL_FAILED_BAD_TARGETS;
+                }
             }
         }
 
@@ -4876,14 +4894,6 @@ SpellCastResult Spell::CheckCast(bool strict)
         {
             case SPELL_AURA_DUMMY:
             {
-                // Mind Flay
-                if (m_spellInfo->SpellIconID == 548 && m_spellInfo->SpellFamilyName == SPELLFAMILY_PRIEST)
-                {
-                    if (m_targets.getUnitTarget()->isDead())
-                        return SPELL_FAILED_BAD_TARGETS;
-                    if (m_caster->IsFriendlyTo(m_targets.getUnitTarget()))
-                        return SPELL_FAILED_TARGET_FRIENDLY;
-                }
                 //custom check
                 switch(m_spellInfo->Id)
                 {
@@ -5958,7 +5968,10 @@ void Spell::UpdatePointers()
 
 bool Spell::IsAffectedByAura(Aura *aura) const
 {
-    return sSpellMgr.IsAffectedByMod(m_spellInfo, aura->getAuraSpellMod());
+    if(SpellModifier* mod = aura->getAuraSpellMod())
+        return mod->isAffectedOnSpell(m_spellInfo);
+    else
+        return false;
 }
 
 bool Spell::CheckTargetCreatureType(Unit* target) const
