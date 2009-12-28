@@ -1669,6 +1669,7 @@ class MANGOS_DLL_SPEC Player : public Unit
         ActionButton* addActionButton(uint8 button, uint32 action, uint8 type);
         void removeActionButton(uint8 button);
         void SendInitialActionButtons() const;
+        uint32 GetActionByActionButton(uint8 button);
 
         PvPInfo pvpInfo;
         void UpdatePvP(bool state, bool ovrride=false);
