@@ -1364,12 +1364,15 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
         {
             switch(m_spellInfo->Id)
             {
+                case 28542:                                 // Life Drain
+                    unMaxTargets = 2;
                 case 28796:                                 // Poison Bolt Volley
                 case 29213:                                 // Curse of the Plaguebringer
                 case 31298:                                 // Sleep
                     unMaxTargets = 3;
                     break;
                 case 30843:                                 // Enfeeble
+                case 55665:                                 // Life Drain
                     unMaxTargets = 5;
                     break;
                 case 54098:                                 // Poison Bolt Volley
