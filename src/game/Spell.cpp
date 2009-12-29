@@ -2279,7 +2279,7 @@ void Spell::SetTargetMap(uint32 effIndex, uint32 targetMode, UnitList& targetUni
             // FOR EVERY TARGET TYPE THERE IS A DIFFERENT FILL!!
             if (m_spellInfo->SpellFamilyFlags2 & UI64LIT (0x00000020) && m_spellInfo->SpellIconID == 3217)
             {
-                TagUnitMap.push_back(m_caster);
+                targetUnitMap.push_back(m_caster);
                 break;
             }
             switch(m_spellInfo->Effect[effIndex])
