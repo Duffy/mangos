@@ -469,7 +469,7 @@ WorldObject* Spell::FindCorpseUsing()
     return result;
 }
 
-void Spell::FillCustomTargetMap(uint32 i, UnitList& TagUnitMap)
+void Spell::FillCustomTargetMap(uint32 i, UnitList &targetUnitMap)
 {
     float radius;
     if (m_spellInfo->EffectRadiusIndex[i])
@@ -488,7 +488,7 @@ void Spell::FillCustomTargetMap(uint32 i, UnitList& TagUnitMap)
                 switch(result->GetTypeId())
                 {
                     case TYPEID_UNIT:
-                        TagUnitMap.push_back((Unit*)result);
+                        targetUnitMap.push_back((Unit*)result);
                         break;
                     default:
                         break;
@@ -498,7 +498,7 @@ void Spell::FillCustomTargetMap(uint32 i, UnitList& TagUnitMap)
         }
         case 47496: // Ghoul's explode
         {
-            FillAreaTargets(TagUnitMap,m_targets.m_destX, m_targets.m_destY,radius,PUSH_DEST_CENTER,SPELL_TARGETS_AOE_DAMAGE);
+            FillAreaTargets(targetUnitMap,m_targets.m_destX, m_targets.m_destY,radius,PUSH_DEST_CENTER,SPELL_TARGETS_AOE_DAMAGE);
             break;
         }
         break;
@@ -1467,7 +1467,7 @@ void Spell::SetTargetMap(uint32 effIndex, uint32 targetMode, UnitList& targetUni
                                 (m_targets.getUnitTarget()->GetCreatureTypeMask() & CREATURE_TYPEMASK_MECHANICAL_OR_ELEMENTAL)!=0 ||
                                 (m_targets.getUnitTarget()->GetDisplayId() != m_targets.getUnitTarget()->GetNativeDisplayId()) ))
                             {
-                                TagUnitMap.clear();
+                                targetUnitMap.clear();
                                 CleanupTargetList();
 
                                 WorldObject* result = FindCorpseUsing <MaNGOS::ExplodeCorpseObjectCheck> ();
@@ -1478,7 +1478,7 @@ void Spell::SetTargetMap(uint32 effIndex, uint32 targetMode, UnitList& targetUni
                                     {
                                         case TYPEID_UNIT:
                                         case TYPEID_PLAYER:
-                                            TagUnitMap.push_back((Unit*)result);
+                                            targetUnitMap.push_back((Unit*)result);
                                             break;
                                     }
                                 }
@@ -1497,7 +1497,7 @@ void Spell::SetTargetMap(uint32 effIndex, uint32 targetMode, UnitList& targetUni
                 }
                 default :
                 {
-                    TagUnitMap.push_back(m_caster);
+                    targetUnitMap.push_back(m_caster);
                     break;
                 }
             }
