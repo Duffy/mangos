@@ -1369,21 +1369,6 @@ void Spell::SetTargetMap(uint32 effIndex,uint32 targetMode,UnitList& TagUnitMap)
             break;
     }
 
-    switch(m_spellInfo->Id)
-    {
-        case 28542: // Life Drain
-                unMaxTargets = 2;
-        case 29213: // Curse of the Plaguebringer
-        case 54835: // Curse of the Plaguebringer (H)
-        case 28796: // Poison Bolt Volley
-        case 54098: // Poison Bolt Volley (H)
-                unMaxTargets = 3;
-        case 55665: // Life Drain (H)
-                unMaxTargets = 5;
-        default:
-            break;
-    }
-
     Unit::AuraList const& mod = m_caster->GetAurasByType(SPELL_AURA_MOD_MAX_AFFECTED_TARGETS);
     for(Unit::AuraList::const_iterator m = mod.begin(); m != mod.end(); ++m)
     {
