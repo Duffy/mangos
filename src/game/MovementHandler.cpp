@@ -304,7 +304,7 @@ void WorldSession::HandleMovementOpcodes( WorldPacket & recv_data )
     /* process position-change */
     WorldPacket data(opcode, recv_data.size());
     movementInfo.time = getMSTime();
-    movementInfo.guid = mover->GetGUID();
+    movementInfo.guid = mover ? mover->GetGUID() : 0;
     WriteMovementInfo(&data, &movementInfo);
     GetPlayer()->SendMessageToSet(&data, false);
 
