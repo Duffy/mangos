@@ -306,11 +306,6 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
         return;
     }
 
-    //remove invisibility on casted hack
-    if(spellId != 32612)
-        if(mover->HasAura(32612))
-            mover->RemoveAurasDueToSpell(32612);
-
     if(mover->GetTypeId()==TYPEID_PLAYER)
     {
         // not have spell in spellbook or spell passive and not casted by client
