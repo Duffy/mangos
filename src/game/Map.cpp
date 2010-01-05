@@ -769,25 +769,18 @@ void Map::Update(const uint32 &t_diff)
 
 void Map::ProcessRelocationNotifies(uint32 diff)
 {
-    MaNGOS::ResetNotifier reset(NOTIFY_VISIBILITY_CHANGED);
-    TypeContainerVisitor<MaNGOS::ResetNotifier, GridTypeMapContainer >  grid_notifier(reset);
-    TypeContainerVisitor<MaNGOS::ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
-
     for(GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
     {
         NGridType *grid = i->getSource();
 
-        if (!grid || grid->GetGridState() != GRID_STATE_ACTIVE)
+        if (grid->GetGridState() != GRID_STATE_ACTIVE)
             continue;
 
         grid->getGridInfoRef()->getRelocationTimer().TUpdate(diff);
         if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
             continue;
 
-        grid->getGridInfoRef()->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
-
         uint32 gx = grid->getX(), gy = grid->getY();
-
         CellPair cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
         CellPair cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
 
@@ -812,6 +805,26 @@ void Map::ProcessRelocationNotifies(uint32 diff)
                 cell_lock->Visit(cell_lock, world_object_relocation,  *this);
             }
         }
+    }
+
+    MaNGOS::ResetNotifier reset(NOTIFY_VISIBILITY_CHANGED);
+    TypeContainerVisitor<MaNGOS::ResetNotifier, GridTypeMapContainer >  grid_notifier(reset);
+    TypeContainerVisitor<MaNGOS::ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
+    for(GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
+    {
+        NGridType *grid = i->getSource();
+
+        if (grid->GetGridState() != GRID_STATE_ACTIVE)
+            continue;
+
+        if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
+            continue;
+
+        grid->getGridInfoRef()->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
+
+        uint32 gx = grid->getX(), gy = grid->getY();
+        CellPair cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
+        CellPair cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
 
         for(uint32 x = cell_min.x_coord; x <= cell_max.x_coord; ++x)
         {

@@ -26,7 +26,7 @@
 #include "GameSystem/GridReference.h"
 #include "Timer.h"
 
-#define DEFAULT_VISIBILITY_NOTIFY_PERIOD      600
+#define DEFAULT_VISIBILITY_NOTIFY_PERIOD      1000
 
 class GridInfo
 {
