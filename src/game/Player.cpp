@@ -274,6 +274,33 @@ std::ostringstream& operator<< (std::ostringstream& ss, PlayerTaxi const& taxi)
     return ss;
 }
 
+SpellModifier::SpellModifier( SpellModOp _op, SpellModType _type, int32 _value, SpellEntry const* spellEntry, uint8 eff, int16 _charges /*= 0*/ ) : op(_op), type(_type), charges(_charges), value(_value), spellId(spellEntry->Id), lastAffected(NULL)
+{
+    uint32 const* ptr = spellEntry->GetEffectSpellClassMask(eff);
+    mask = uint64(ptr[0]) | (uint64(ptr[1]) << 32);
+    mask2= ptr[2];
+}
+
+SpellModifier::SpellModifier( SpellModOp _op, SpellModType _type, int32 _value, Aura const* aura, int16 _charges /*= 0*/ ) : op(_op), type(_type), charges(_charges), value(_value), spellId(aura->GetId()), lastAffected(NULL)
+{
+    uint32 const* ptr = aura->getAuraSpellClassMask();
+    mask = uint64(ptr[0]) | (uint64(ptr[1]) << 32);
+    mask2= ptr[2];
+}
+
+bool SpellModifier::isAffectedOnSpell( SpellEntry const *spell ) const
+{
+    SpellEntry const *affect_spell = sSpellStore.LookupEntry(spellId);
+    // False if affect_spell == NULL or spellFamily not equal
+    if (!affect_spell || affect_spell->SpellFamilyName != spell->SpellFamilyName)
+        return false;
+    if (mask & spell->SpellFamilyFlags)
+        return true;
+    if (mask2 & spell->SpellFamilyFlags2)
+        return true;
+    return false;
+}
+
 //== Player ====================================================
 
 UpdateMask Player::updateVisualBits;
@@ -3188,7 +3215,7 @@ void Player::learnSpell(uint32 spell_id, bool dependent)
     GetSession()->SendPacket(&data);
 }
 
-void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
+void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank, bool sendUpdate)
 {
     PlayerSpellMap::iterator itr = m_spells.find(spell_id);
     if (itr == m_spells.end())
@@ -3367,7 +3394,7 @@ void Player::removeSpell(uint32 spell_id, bool disabled, bool learn_low_rank)
     }
 
     // remove from spell book if not replaced by lesser rank
-    if(!prev_activate)
+    if (!prev_activate && sendUpdate)
     {
         WorldPacket data(SMSG_REMOVED_SPELL, 4);
         data << uint32(spell_id);
@@ -11200,12 +11227,12 @@ void Player::SwapItem( uint16 src, uint16 dst )
     Item *pSrcItem = GetItemByPos( srcbag, srcslot );
     Item *pDstItem = GetItemByPos( dstbag, dstslot );
 
-    if( !pSrcItem )
+    if (!pSrcItem)
         return;
 
     sLog.outDebug( "STORAGE: SwapItem bag = %u, slot = %u, item = %u", dstbag, dstslot, pSrcItem->GetEntry());
 
-    if(!isAlive() )
+    if (!isAlive())
     {
         SendEquipError( EQUIP_ERR_YOU_ARE_DEAD, pSrcItem, pDstItem );
         return;
@@ -11213,7 +11240,7 @@ void Player::SwapItem( uint16 src, uint16 dst )
 
     // SRC checks
 
-    if(pSrcItem->m_lootGenerated)                           // prevent swap looting item
+    if (pSrcItem->m_lootGenerated)                          // prevent swap looting item
     {
         //best error message found for attempting to swap while looting
         SendEquipError( EQUIP_ERR_CANT_DO_RIGHT_NOW, pSrcItem, NULL );
@@ -11221,11 +11248,11 @@ void Player::SwapItem( uint16 src, uint16 dst )
     }
 
     // check unequip potability for equipped items and bank bags
-    if(IsEquipmentPos ( src ) || IsBagPos ( src ))
+    if (IsEquipmentPos(src) || IsBagPos(src))
     {
         // bags can be swapped with empty bag slots, or with empty bag (items move possibility checked later)
         uint8 msg = CanUnequipItem( src, !IsBagPos ( src ) || IsBagPos ( dst ) || (pDstItem && pDstItem->IsBag() && ((Bag*)pDstItem)->IsEmpty()));
-        if(msg != EQUIP_ERR_OK)
+        if (msg != EQUIP_ERR_OK)
         {
             SendEquipError( msg, pSrcItem, pDstItem );
             return;
@@ -11233,9 +11260,16 @@ void Player::SwapItem( uint16 src, uint16 dst )
     }
 
     // prevent put equipped/bank bag in self
-    if( IsBagPos ( src ) && srcslot == dstbag)
+    if (IsBagPos(src) && srcslot == dstbag)
     {
         SendEquipError( EQUIP_ERR_NONEMPTY_BAG_OVER_OTHER_BAG, pSrcItem, pDstItem );
+        return;
+    }
+
+    // prevent put equipped/bank bag in self
+    if (IsBagPos(dst) && dstslot == srcbag)
+    {
+        SendEquipError( EQUIP_ERR_NONEMPTY_BAG_OVER_OTHER_BAG, pDstItem, pSrcItem );
         return;
     }
 
@@ -17179,7 +17213,7 @@ bool Player::IsAffectedBySpellmod(SpellEntry const *spellInfo, SpellModifier *mo
             return false;
     }
 
-    return sSpellMgr.IsAffectedByMod(spellInfo, mod);
+    return mod->isAffectedOnSpell(spellInfo);
 }
 
 void Player::AddSpellMod(SpellModifier* mod, bool apply)
@@ -17189,9 +17223,9 @@ void Player::AddSpellMod(SpellModifier* mod, bool apply)
     for(int eff=0;eff<96;++eff)
     {
         uint64 _mask = 0;
-        uint64 _mask2= 0;
+        uint32 _mask2= 0;
         if (eff<64) _mask = uint64(1) << (eff- 0);
-        else        _mask2= uint64(1) << (eff-64);
+        else        _mask2= uint32(1) << (eff-64);
         if ( mod->mask & _mask || mod->mask2 & _mask2)
         {
             int32 val = 0;
@@ -21230,3 +21264,4 @@ void Player::SetHomebindToCurrentPos()
     CharacterDatabase.PExecute("UPDATE character_homebind SET map = '%u', zone = '%u', position_x = '%f', position_y = '%f', position_z = '%f' WHERE guid = '%u'",
         m_homebindMapId, m_homebindZoneId, m_homebindX, m_homebindY, m_homebindZ, GetGUIDLow());
 }
+

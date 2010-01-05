@@ -206,6 +206,19 @@ pkgdata_DATA = \
 	8992_01_mangos_spell_proc_event.sql \
 	8992_02_mangos_spell_chain.sql \
 	8993_01_mangos_spell_proc_event.sql \
+	8995_01_mangos_spell_proc_event.sql \
+	8996_01_mangos_spell_proc_event.sql \
+	9001_01_mangos_spell_proc_event.sql \
+	9005_01_mangos_spell_proc_event.sql \
+	9007_01_mangos_spell_proc_event.sql \
+	9010_01_realmd_realmlist.sql \
+	9015_01_mangos_spell_bonus_data.sql \
+	9018_01_mangos_spell_bonus_data.sql \
+	9019_01_mangos_spell_threat.sql \
+	9025_01_mangos_spell_proc_event.sql \
+	9034_01_mangos_spell_proc_event.sql \
+	9045_01_mangos_spell_proc_event.sql \
+	9045_02_mangos_spell_chain.sql \
 	README
 
 ## Additional files to include when running 'make dist'
@@ -392,4 +405,17 @@ EXTRA_DIST = \
 	8992_01_mangos_spell_proc_event.sql \
 	8992_02_mangos_spell_chain.sql \
 	8993_01_mangos_spell_proc_event.sql \
+	8995_01_mangos_spell_proc_event.sql \
+	8996_01_mangos_spell_proc_event.sql \
+	9001_01_mangos_spell_proc_event.sql \
+	9005_01_mangos_spell_proc_event.sql \
+	9007_01_mangos_spell_proc_event.sql \
+	9010_01_realmd_realmlist.sql \
+	9015_01_mangos_spell_bonus_data.sql \
+	9018_01_mangos_spell_bonus_data.sql \
+	9019_01_mangos_spell_threat.sql \
+	9025_01_mangos_spell_proc_event.sql \
+	9034_01_mangos_spell_proc_event.sql \
+	9045_01_mangos_spell_proc_event.sql \
+	9045_02_mangos_spell_chain.sql \
 	README
