@@ -388,6 +388,23 @@ void Unit::RemoveSpellbyDamageTaken(AuraType auraType, uint32 damage)
 
     // The chance to dispel an aura depends on the damage taken with respect to the casters level.
     uint32 max_dmg = getLevel() > 8 ? 25 * getLevel() - 150 : 50;
+
+    AuraList const& typeAuras = GetAurasByType(auraType);
+    for (AuraList::const_iterator iter = typeAuras.begin(); iter != typeAuras.end(); ++iter)
+    {
+        Unit *caster = (*iter)->GetCaster();
+
+        if (!caster)
+            continue;
+
+        AuraList const& mOverrideClassScript = caster->GetAurasByType(SPELL_AURA_OVERRIDE_CLASS_SCRIPTS);
+        for(AuraList::const_iterator i = mOverrideClassScript.begin(); i != mOverrideClassScript.end(); ++i)
+        {
+            if ((*i)->GetModifier()->m_miscvalue == 7801 && (*i)->isAffectedOnSpell((*iter)->GetSpellProto()))
+                max_dmg += (*i)->GetModifier()->m_amount * max_dmg / 100;
+        }
+    }
+
     float chance = float(damage) / max_dmg * 100.0f;
     if (roll_chance_f(chance))
         RemoveSpellsCausingAura(auraType);
@@ -3773,11 +3790,10 @@ bool Unit::AddAura(Aura *Aur)
                     // Carry over removed Aura's remaining damage if Aura still has ticks remaining
                     else if (aur2->GetSpellProto()->AttributesEx4 & SPELL_ATTR_EX4_STACK_DOT_MODIFIER && aurName == SPELL_AURA_PERIODIC_DAMAGE && aur2->GetAuraDuration() > 0)
                     {
-                        int32 remainingTicks = 1 + (aur2->GetAuraDuration() / aur2->GetModifier()->periodictime);
+                        int32 remainingTicks = aur2->GetAuraMaxTicks() - aur2->GetAuraTicks();
                         int32 remainingDamage = aur2->GetModifier()->m_amount * remainingTicks;
 
-                        int32 maxTicks = Aur->GetAuraMaxDuration() / Aur->GetModifier()->periodictime;
-                        Aur->GetModifier()->m_amount += int32(remainingDamage / maxTicks);
+                        Aur->GetModifier()->m_amount += int32(remainingDamage / Aur->GetAuraMaxTicks());
                     }
                     // can be only single (this check done at _each_ aura add
                     RemoveAura(i2,AURA_REMOVE_BY_STACK);
@@ -5817,7 +5833,18 @@ bool Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura* triggeredByAu
                 // Divine Aegis
                 case 2820:
                 {
-                    basepoints0 = damage * triggerAmount/100;
+                    if(!pVictim || !pVictim->isAlive())
+                        return false;
+
+                    // find Divine Aegis on the target and get absorb amount
+                    Aura* DivineAegis = pVictim->GetAura(47753,0);
+                    if (DivineAegis)
+                        basepoints0 = DivineAegis->GetModifier()->m_amount;
+                    basepoints0 += damage * triggerAmount/100;
+
+                    // limit absorb amount
+                    if (basepoints0 > pVictim->getLevel()*125)
+                        basepoints0 = pVictim->getLevel()*125;
                     triggered_spell_id = 47753;
                     break;
                 }
@@ -10538,7 +10565,7 @@ void Unit::Mount(uint32 mount, uint32 spellId)
             // Normal case (Unsummon only permanent pet)
             else if (Pet* pet = GetPet())
             {
-                if (pet->IsPermanentPetFor((Player*)this))
+                if (pet->IsPermanentPetFor((Player*)this) && !((Player*)this)->InArena())
                     ((Player*)this)->UnsummonPetTemporaryIfAny();
                 else
                     pet->ApplyModeFlags(PET_MODE_DISABLE_ACTIONS,true);
@@ -12668,6 +12695,7 @@ void Unit::ProcDamageAndSpellFor( bool isVictim, Unit * pTarget, uint32 procFlag
             case SPELL_AURA_MOD_DAMAGE_PERCENT_DONE:
             case SPELL_AURA_MANA_SHIELD:
             case SPELL_AURA_OBS_MOD_MANA:
+            case SPELL_AURA_ADD_PCT_MODIFIER:
             case SPELL_AURA_DUMMY:
             {
                 sLog.outDebug("ProcDamageAndSpell: casting spell id %u (triggered by %s dummy aura of spell %u)", spellInfo->Id,(isVictim?"a victim's":"an attacker's"), triggeredByAura->GetId());

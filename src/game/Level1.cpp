@@ -1355,23 +1355,26 @@ bool ChatHandler::HandleModifyScaleCommand(const char* args)
         return false;
     }
 
-    Player *chr = getSelectedPlayer();
-    if (chr == NULL)
+    Unit *target = getSelectedUnit();
+    if (target == NULL)
     {
-        SendSysMessage(LANG_NO_CHAR_SELECTED);
+        SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
         SetSentErrorMessage(true);
         return false;
     }
 
-    // check online security
-    if (HasLowerSecurity(chr, 0))
-        return false;
+    if (target->GetTypeId()==TYPEID_PLAYER)
+    {
+        // check online security
+        if (HasLowerSecurity((Player*)target, 0))
+            return false;
 
-    PSendSysMessage(LANG_YOU_CHANGE_SIZE, Scale, GetNameLink(chr).c_str());
-    if (needReportToTarget(chr))
-        ChatHandler(chr).PSendSysMessage(LANG_YOURS_SIZE_CHANGED, GetNameLink().c_str(), Scale);
+        PSendSysMessage(LANG_YOU_CHANGE_SIZE, Scale, GetNameLink((Player*)target).c_str());
+        if (needReportToTarget((Player*)target))
+            ChatHandler((Player*)target).PSendSysMessage(LANG_YOURS_SIZE_CHANGED, GetNameLink().c_str(), Scale);
+    }
 
-    chr->SetFloatValue(OBJECT_FIELD_SCALE_X, Scale);
+    target->SetFloatValue(OBJECT_FIELD_SCALE_X, Scale);
 
     return true;
 }
