@@ -5301,23 +5301,6 @@ void Spell::EffectScriptEffect(uint32 effIndex)
                 case 24590:
                     unitTarget->RemoveSingleSpellAurasFromStack(24575);
                     return;
-                    // PX-238 Winter Wondervolt TRAP
-                case 26275:
-                {
-                    uint32 spells[4] = { 26272, 26157, 26273, 26274 };
-
-                    // check presence
-                    for(int j = 0; j < 4; ++j)
-                        if(unitTarget->HasAura(spells[j],0))
-                            return;
-
-                    // select spell
-                    uint32 iTmpSpellId = spells[urand(0,3)];
-
-                    // cast
-                    unitTarget->CastSpell(unitTarget, iTmpSpellId, true);
-                    return;
-                }
                 // Mercurial Shield - need remove one 26464 Mercurial Shield aura
                 case 26465:
                     unitTarget->RemoveSingleSpellAurasFromStack(26464);
