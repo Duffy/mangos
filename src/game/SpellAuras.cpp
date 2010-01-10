@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
+ * Copyright (C) 2005-2010 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2483,6 +2483,13 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 m_target->CastSpell(m_target, 28206, true, NULL, this);
                 // Poison Cloud
                 m_target->CastSpell(m_target, 28240, true, NULL, this);
+                return;
+            }
+            case 32286:                                     // Focus Target Visual
+            {
+                if (m_removeMode == AURA_REMOVE_BY_DEFAULT)
+                    m_target->CastSpell(m_target, 32301, true, NULL, this);
+
                 return;
             }
             case 36730:                                     // Flame Strike
@@ -6200,6 +6207,22 @@ void Aura::HandleSpellSpecificBoosts(bool apply)
                         }
                     }
                 }
+                else
+                    return;
+            }
+            // Combustion (remove triggered aura stack)
+            else if (m_spellProto->Id == 11129)
+            {
+                if(!apply)
+                    spellId1 = 28682;
+                else
+                    return;
+            }
+            // Combustion (remove main aura)
+            else if (m_spellProto->Id == 28682)
+            {
+                if(!apply)
+                    spellId1 = 11129;
                 else
                     return;
             }
