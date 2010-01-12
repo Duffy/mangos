@@ -632,7 +632,11 @@ void Map::MessageDistBroadcast(WorldObject *obj, WorldPacket *msg, float dist)
 
 bool Map::loaded(const GridPair &p) const
 {
-    return ( getNGrid(p.x_coord, p.y_coord) && isGridObjectDataLoaded(p.x_coord, p.y_coord) );
+	// crash guard if x, y coordinates are outside grids
+    if ( (p.x_coord >= MAX_NUMBER_OF_GRIDS) || (p.y_coord >= MAX_NUMBER_OF_GRIDS) )
+		return true;  // consider already loaded, skip
+  
+	return ( getNGrid(p.x_coord, p.y_coord) && isGridObjectDataLoaded(p.x_coord, p.y_coord) );
 }
 
 void Map::Update(const uint32 &t_diff)
