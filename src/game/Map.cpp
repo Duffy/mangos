@@ -428,7 +428,7 @@ Map::EnsureGridCreated(const GridPair &p)
 void
 Map::EnsureGridLoadedAtEnter(const Cell &cell, Player *player)
 {
-    if(EnsureGridLoaded(cell)     // create grid, if not created
+    if(EnsureGridLoaded(cell))     // create grid, if not created
     {
         if (player)
         {
