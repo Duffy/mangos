@@ -428,12 +428,8 @@ Map::EnsureGridCreated(const GridPair &p)
 void
 Map::EnsureGridLoadedAtEnter(const Cell &cell, Player *player)
 {
-    NGridType *grid;
-
-    if(EnsureGridLoaded(cell))
+    if(EnsureGridLoaded(cell)     // create grid, if not created
     {
-        grid = getNGrid(cell.GridX(), cell.GridY());
-
         if (player)
         {
             player->SendDelayResponse(MAX_GRID_LOAD_TIME);
@@ -443,15 +439,16 @@ Map::EnsureGridLoadedAtEnter(const Cell &cell, Player *player)
         {
             DEBUG_LOG("Active object nearby triggers of loading grid [%u,%u] on map %u", cell.GridX(), cell.GridY(), i_id);
         }
+    }
 
-        ResetGridExpiry(*getNGrid(cell.GridX(), cell.GridY()), 0.1f);
+    NGridType *grid = getNGrid(cell.GridX(), cell.GridY());    
+    assert( grid != NULL );
+
+    if( grid->GetGridState() != GRID_STATE_ACTIVE )
+    {
+        ResetGridExpiry(*grid, 0.1f);
         grid->SetGridState(GRID_STATE_ACTIVE);
     }
-    else
-        grid = getNGrid(cell.GridX(), cell.GridY());
-
-    if (player)
-        AddToGrid(player,grid,cell);
 }
 
 bool Map::EnsureGridLoaded(const Cell &cell)
@@ -485,13 +482,23 @@ void Map::LoadGrid(const Cell& cell, bool no_unload)
 
 bool Map::Add(Player *player)
 {
+    CellPair p = MaNGOS::ComputeCellPair(player->GetPositionX(), player->GetPositionY());
+    if(p.x_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP || p.y_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP )
+    {
+        sLog.outError("Map::Add: Player (GUID: %u) have invalid coordinates X:%f Y:%f grid cell [%u:%u]", player->GetGUIDLow(), player->GetPositionX(), player->GetPositionY(), p.x_coord, p.y_coord);
+        return false;
+    }
+
     player->GetMapRef().link(this, player);
     player->SetMap(this);
 
-    // update player state for other player and visa-versa
-    CellPair p = MaNGOS::ComputeCellPair(player->GetPositionX(), player->GetPositionY());
     Cell cell(p);
+
     EnsureGridLoadedAtEnter(cell, player);
+    NGridType *grid = getNGrid(cell.GridX(), cell.GridY());
+    assert( grid != NULL );
+    AddToGrid(player, grid, cell);
+
     player->AddToWorld();
 
     SendInitSelf(player);
@@ -779,31 +786,24 @@ void Map::Update(const uint32 &t_diff)
 
 void Map::ProcessRelocationNotifies(uint32 diff)
 {
-    MaNGOS::ResetNotifier reset(NOTIFY_VISIBILITY_CHANGED);
-    TypeContainerVisitor<MaNGOS::ResetNotifier, GridTypeMapContainer >  grid_notifier(reset);
-    TypeContainerVisitor<MaNGOS::ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
-
     for(GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
     {
         NGridType *grid = i->getSource();
 
-        if (!grid || grid->GetGridState() != GRID_STATE_ACTIVE)
+        if (grid->GetGridState() != GRID_STATE_ACTIVE)
             continue;
 
         grid->getGridInfoRef()->getRelocationTimer().TUpdate(diff);
         if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
             continue;
 
-        grid->getGridInfoRef()->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
-
         uint32 gx = grid->getX(), gy = grid->getY();
-
         CellPair cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
         CellPair cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
 
-        for(uint32 x = cell_min.x_coord; x <= cell_max.x_coord; ++x)
+        for(uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
         {
-            for(uint32 y = cell_min.y_coord; y <= cell_max.y_coord; ++y)
+            for(uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
             {
                 uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
                 if(!isCellMarked(cell_id))
@@ -822,10 +822,30 @@ void Map::ProcessRelocationNotifies(uint32 diff)
                 cell_lock->Visit(cell_lock, world_object_relocation,  *this);
             }
         }
+    }
 
-        for(uint32 x = cell_min.x_coord; x <= cell_max.x_coord; ++x)
+    MaNGOS::ResetNotifier reset(NOTIFY_VISIBILITY_CHANGED);
+    TypeContainerVisitor<MaNGOS::ResetNotifier, GridTypeMapContainer >  grid_notifier(reset);
+    TypeContainerVisitor<MaNGOS::ResetNotifier, WorldTypeMapContainer > world_notifier(reset);
+    for(GridRefManager<NGridType>::iterator i = GridRefManager<NGridType>::begin(); i != GridRefManager<NGridType>::end(); ++i)
+    {
+        NGridType *grid = i->getSource();
+
+        if (grid->GetGridState() != GRID_STATE_ACTIVE)
+            continue;
+
+        if (!grid->getGridInfoRef()->getRelocationTimer().TPassed())
+            continue;
+
+        grid->getGridInfoRef()->getRelocationTimer().TReset(diff, m_VisibilityNotifyPeriod);
+
+        uint32 gx = grid->getX(), gy = grid->getY();
+        CellPair cell_min(gx*MAX_NUMBER_OF_CELLS, gy*MAX_NUMBER_OF_CELLS);
+        CellPair cell_max(cell_min.x_coord + MAX_NUMBER_OF_CELLS, cell_min.y_coord+MAX_NUMBER_OF_CELLS);
+
+        for(uint32 x = cell_min.x_coord; x < cell_max.x_coord; ++x)
         {
-            for(uint32 y = cell_min.y_coord; y <= cell_max.y_coord; ++y)
+            for(uint32 y = cell_min.y_coord; y < cell_max.y_coord; ++y)
             {
                 uint32 cell_id = (y * TOTAL_NUMBER_OF_CELLS_PER_MAP) + x;
                 if(!isCellMarked(cell_id))
@@ -836,8 +856,8 @@ void Map::ProcessRelocationNotifies(uint32 diff)
                 cell.data.Part.reserved = CENTER_DISTRICT;
                 cell.SetNoCreate();
                 CellLock<NullGuard> cell_lock(cell, pair);
-                cell_lock->Visit(cell_lock, grid_notifier,  *this);
-                cell_lock->Visit(cell_lock, world_notifier,  *this);
+                Visit(cell_lock, grid_notifier);
+                Visit(cell_lock, world_notifier);
             }
         }
     }
@@ -982,8 +1002,7 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
 
     Cell old_cell(old_val);
     Cell new_cell(new_val);
-    new_cell |= old_cell;
-    bool same_cell = (new_cell == old_cell);
+    //new_cell |= old_cell; no sense to do that now
 
     player->Relocate(x, y, z, orientation);
 
@@ -997,20 +1016,15 @@ Map::PlayerRelocation(Player *player, float x, float y, float z, float orientati
 
         NGridType* oldGrid = getNGrid(old_cell.GridX(), old_cell.GridY());
         RemoveFromGrid(player, oldGrid,old_cell);
-        if( !old_cell.DiffGrid(new_cell) )
-            AddToGrid(player, oldGrid,new_cell);
-        else
+
+        if( old_cell.DiffGrid(new_cell) )
             EnsureGridLoadedAtEnter(new_cell, player);
+
+        NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
+        AddToGrid(player, newGrid,new_cell);
     }
 
     AddNotifier(player, true);
-
-    NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
-    if( !same_cell && newGrid->GetGridState()!= GRID_STATE_ACTIVE )
-    {
-        ResetGridExpiry(*newGrid, 0.1f);
-        newGrid->SetGridState(GRID_STATE_ACTIVE);
-    }
 }
 
 void
