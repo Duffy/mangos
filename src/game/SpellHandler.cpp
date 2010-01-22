@@ -317,7 +317,7 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
             return;
         }
     }
-    else if(mover && mover->GetTypeId() == TYPEID_UNIT)
+    else
     {
         // not have spell in spellbook or spell passive and not casted by client
         if (!((Creature*)mover)->HasSpell(spellId) || IsPassiveSpell(spellId) )
