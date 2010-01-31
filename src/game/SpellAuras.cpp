@@ -6885,6 +6885,10 @@ void Aura::PeriodicTick()
         case SPELL_AURA_PERIODIC_DAMAGE:
         case SPELL_AURA_PERIODIC_DAMAGE_PERCENT:
         {
+            // don't damage target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             Unit *pCaster = GetCaster();
             if(!pCaster)
                 return;
@@ -7034,6 +7038,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_PERIODIC_LEECH:
         {
+            // don't damage target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             Unit *pCaster = GetCaster();
             if(!pCaster)
                 return;
@@ -7130,10 +7138,14 @@ void Aura::PeriodicTick()
         case SPELL_AURA_PERIODIC_HEAL:
         case SPELL_AURA_OBS_MOD_HEALTH:
         {
+            // don't heal target if not alive, mostly death persistent effects from items
+            if (!m_target->isAlive())
+                return;
+
             Unit *pCaster = GetCaster();
             if(!pCaster)
                 return;
-
+            
             // heal for caster damage (must be alive)
             if(m_target != pCaster && GetSpellProto()->SpellVisual[0] == 163 && !pCaster->isAlive())
                 return;
@@ -7217,6 +7229,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_PERIODIC_MANA_LEECH:
         {
+            // don't damage target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             if(m_modifier.m_miscvalue < 0 || m_modifier.m_miscvalue >= MAX_POWERS)
                 return;
 
@@ -7290,6 +7306,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_PERIODIC_ENERGIZE:
         {
+            // don't energize target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             // ignore non positive values (can be result apply spellmods to aura damage
             uint32 pdamage = m_modifier.m_amount > 0 ? m_modifier.m_amount : 0;
 
@@ -7315,6 +7335,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_OBS_MOD_MANA:
         {
+            // don't energize target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             // ignore non positive values (can be result apply spellmods to aura damage
             uint32 amount = m_modifier.m_amount > 0 ? m_modifier.m_amount : 0;
 
@@ -7337,6 +7361,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_POWER_BURN_MANA:
         {
+            // don't mana burn target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             Unit *pCaster = GetCaster();
             if(!pCaster)
                 return;
@@ -7383,6 +7411,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_MOD_REGEN:
         {
+            // don't heal target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             int32 gain = m_target->ModifyHealth(m_modifier.m_amount);
             if (Unit *caster = GetCaster())
                 m_target->getHostileRefManager().threatAssist(caster, float(gain) * 0.5f, GetSpellProto());
@@ -7390,6 +7422,10 @@ void Aura::PeriodicTick()
         }
         case SPELL_AURA_MOD_POWER_REGEN:
         {
+            // don't energize target if not alive, possible death persistent effects
+            if (!m_target->isAlive())
+                return;
+
             Powers pt = m_target->getPowerType();
             if(int32(pt) != m_modifier.m_miscvalue)
                 return;
