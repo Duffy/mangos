@@ -13871,6 +13871,7 @@ void Unit::CleanupDeletedAuras()
     for(AuraList::const_iterator itr = m_deletedAuras.begin(); itr != m_deletedAuras.end(); ++itr)
         delete *itr;
     m_deletedAuras.clear();
+}
 
 uint32 Unit::GetModelForForm(ShapeshiftForm form)
 {
