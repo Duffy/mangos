@@ -1,4 +1,3 @@
-ALTER TABLE db_version CHANGE COLUMN required_9156_02_mangos_spell_proc_event required_9160_01_mangos_spell_proc_event bit;
 
 DELETE FROM `spell_proc_event` WHERE `entry` IN (31244,31245);
 INSERT INTO `spell_proc_event` VALUES

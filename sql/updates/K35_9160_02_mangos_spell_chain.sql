@@ -1,4 +1,3 @@
-ALTER TABLE db_version CHANGE COLUMN required_9160_01_mangos_spell_proc_event required_9160_02_mangos_spell_chain bit;
 
 /*Quick Recovery*/
 DELETE FROM spell_chain WHERE first_spell = 31244;
