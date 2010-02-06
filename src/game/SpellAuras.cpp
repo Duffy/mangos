@@ -7144,7 +7144,7 @@ void Aura::PeriodicTick()
                 return;
 
             Unit *pCaster = GetCaster();
-            if(!pCaster)
+            if(!pCaster || !m_target || !pCaster->IsInWorld() || !m_target->IsInWorld())
                 return;
             
             // heal for caster damage (must be alive)
@@ -7192,8 +7192,9 @@ void Aura::PeriodicTick()
             if( pCaster->GetTypeId() == TYPEID_PLAYER )
                 if( BattleGround *bg = ((Player*)pCaster)->GetBattleGround() )
                     bg->UpdatePlayerScore(((Player*)pCaster), SCORE_HEALING_DONE, gain);
-
-            m_target->getHostileRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
+					
+			if (m_target->CanHaveThreatList())
+				m_target->getHostileRefManager().threatAssist(pCaster, float(gain) * 0.5f, GetSpellProto());
 
             SpellEntry const* spellProto = GetSpellProto();
 
