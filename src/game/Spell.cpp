@@ -982,7 +982,7 @@ void Spell::AddItemTarget(Item* pitem, uint32 effIndex)
 
 void Spell::DoAllEffectOnTarget(TargetInfo *target)
 {
-    if (target->processed)                                  // Check target
+    if (!target || target == (TargetInfo*)0x10 || target->processed)       // Check target
         return;
     target->processed = true;                               // Target checked in apply effects procedure
 
