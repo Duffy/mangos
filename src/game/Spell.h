@@ -21,6 +21,8 @@
 
 #include "GridDefines.h"
 #include "SharedDefines.h"
+#include "tbb/concurrent_vector.h"
+#include <memory>
 
 class WorldSession;
 class Unit;
@@ -542,7 +544,7 @@ class Spell
             uint8  effectMask:8;
             bool   processed:1;
         };
-        std::list<TargetInfo> m_UniqueTargetInfo;
+        tbb::concurrent_vector<TargetInfo> m_UniqueTargetInfo;
         uint8 m_needAliveTargetMask;                        // Mask req. alive targets
 
         struct GOTargetInfo
@@ -552,7 +554,7 @@ class Spell
             uint8  effectMask:8;
             bool   processed:1;
         };
-        std::list<GOTargetInfo> m_UniqueGOTargetInfo;
+        tbb::concurrent_vector<GOTargetInfo> m_UniqueGOTargetInfo;
 
         struct ItemTargetInfo
         {
