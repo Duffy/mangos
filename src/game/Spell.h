@@ -561,7 +561,7 @@ class Spell
             Item  *item;
             uint8 effectMask;
         };
-        std::list<ItemTargetInfo> m_UniqueItemInfo;
+        tbb::concurrent_vector<ItemTargetInfo> m_UniqueItemInfo;
 
         void AddUnitTarget(Unit* target, uint32 effIndex);
         void AddUnitTarget(uint64 unitGUID, uint32 effIndex);
