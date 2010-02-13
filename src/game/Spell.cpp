@@ -2800,12 +2800,6 @@ void Spell::cast(bool skipCheck)
 
     FillTargetMap();
 
-    // let not attack nearby enemies when Seal of Command is triggered by Divine Storm
-    if (m_spellInfo->Id == 20424)
-        if (m_caster->FindCurrentSpellBySpellId(53385))
-            for (int numTargets = m_UniqueTargetInfo.size(); numTargets > 1; numTargets--)
-                m_UniqueTargetInfo.pop_back();
-
     if(m_spellState == SPELL_STATE_FINISHED)                // stop cast if spell marked as finish somewhere in FillTargetMap
     {
         SetExecutedCurrently(false);
